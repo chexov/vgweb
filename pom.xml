@@ -26,17 +26,17 @@
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
             <artifactId>jetty-servlet</artifactId>
-            <version>9.3.4.RC0</version>
+            <version>9.3.4.RC1</version>
         </dependency>
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
             <artifactId>jetty-server</artifactId>
-            <version>9.3.4.RC0</version>
+            <version>9.3.4.RC1</version>
         </dependency>
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
             <artifactId>jetty-alpn-server</artifactId>
-            <version>9.3.4.RC0</version>
+            <version>9.3.4.RC1</version>
         </dependency>
         <dependency>
             <groupId>org.eclipse.jetty.alpn</groupId>
@@ -46,17 +46,17 @@
         <dependency>
             <groupId>org.eclipse.jetty.websocket</groupId>
             <artifactId>websocket-server</artifactId>
-            <version>9.3.4.RC0</version>
+            <version>9.3.4.RC1</version>
         </dependency>
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
             <artifactId>jetty-servlets</artifactId>
-            <version>9.3.4.RC0</version>
+            <version>9.3.4.RC1</version>
         </dependency>
         <dependency>
             <groupId>org.eclipse.jetty.http2</groupId>
             <artifactId>http2-server</artifactId>
-            <version>9.3.4.RC0</version>
+            <version>9.3.4.RC1</version>
         </dependency>
         <dependency>
             <groupId>org.apache.velocity</groupId>
