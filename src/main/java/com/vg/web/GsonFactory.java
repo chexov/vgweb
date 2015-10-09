@@ -1,10 +1,10 @@
 package com.vg.web;
 
 import com.google.gson.*;
+import com.vg.web.util.WebUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.velocity.texen.util.FileUtil;
 import org.junit.Test;
 
 import javax.servlet.http.HttpServletRequest;
@@ -12,7 +12,6 @@ import java.awt.*;
 import java.io.*;
 import java.lang.reflect.Type;
 import java.util.zip.GZIPInputStream;
-import java.util.zip.GZIPOutputStream;
 
 public class GsonFactory {
 
@@ -168,14 +167,14 @@ public class GsonFactory {
         String json = toGson(data);
 
         if (file.getName().endsWith(".gz")) {
-            return atomicWriteByteToFile(WebUtil.gzipString(json), file);
+            return atomicWriteByteToFile(WebUtils.gzipString(json), file);
         } else {
             return atomicWriteStringToFile(json, file);
         }
     }
 
     private static boolean atomicWriteByteToFile(byte[] bytes, File file) throws IOException {
-        File tmp = WebUtil.tmpFile(file);
+        File tmp = WebUtils.tmpFile(file);
         FileUtils.writeByteArrayToFile(tmp, bytes);
         return tmp.renameTo(file);
     }
@@ -189,7 +188,7 @@ public class GsonFactory {
      * @throws IOException
      */
     public static boolean atomicWriteStringToFile(String data, File file) throws IOException {
-        File tmp = WebUtil.tmpFile(file);
+        File tmp = WebUtils.tmpFile(file);
         FileUtils.writeStringToFile(tmp, data);
         return tmp.renameTo(file);
     }

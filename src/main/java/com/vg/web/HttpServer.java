@@ -13,6 +13,7 @@ import javax.net.ssl.SSLSocketFactory;
 import javax.servlet.Filter;
 import javax.servlet.http.HttpServlet;
 
+import com.vg.web.socket.PrefixWebSocketServlet;
 import com.vg.web.view.JsonView;
 import com.vg.web.view.View;
 import org.eclipse.jetty.alpn.ALPN;

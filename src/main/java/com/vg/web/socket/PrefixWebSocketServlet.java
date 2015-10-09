@@ -1,9 +1,10 @@
-package com.vg.web;
+package com.vg.web.socket;
 
 import static com.vg.web.StrParser.pathInfoParser;
 
 import javax.servlet.Servlet;
 
+import com.vg.web.StrParser;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.WebSocketAdapter;
 import org.eclipse.jetty.websocket.common.WebSocketSession;

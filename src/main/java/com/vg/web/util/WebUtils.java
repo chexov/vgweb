@@ -1,4 +1,4 @@
-package com.vg.web;
+package com.vg.web.util;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -7,7 +7,8 @@ import java.util.zip.GZIPOutputStream;
 
 import static org.apache.commons.lang3.RandomStringUtils.randomAlphanumeric;
 
-class WebUtil {
+public class WebUtils {
+
     public static File tmpFile(File orig) {
         return new File(orig.getParentFile(), "." + randomAlphanumeric(8) + "." + orig.getName());
     }
@@ -24,5 +25,13 @@ class WebUtil {
         byte[] array = out.toByteArray();
         out.close();
         return array;
+    }
+
+    public static void rethrow(Throwable e) {
+        if (e instanceof RuntimeException) {
+            throw (RuntimeException) e;
+        } else {
+            throw new RuntimeException(e);
+        }
     }
 }

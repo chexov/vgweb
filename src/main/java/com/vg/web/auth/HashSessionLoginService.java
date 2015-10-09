@@ -1,4 +1,4 @@
-package com.vg.web;
+package com.vg.web.auth;
 
 import com.vg.web.auth.ILoginService;
 import com.vg.web.auth.IUser;
