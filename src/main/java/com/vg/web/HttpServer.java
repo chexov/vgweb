@@ -43,8 +43,6 @@ import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
 
-import com.vg.util.FileUtil;
-
 public class HttpServer {
     private HashSessionManager sessionManager;
     protected Server jetty;
