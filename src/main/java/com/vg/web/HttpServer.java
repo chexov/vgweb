@@ -14,8 +14,6 @@ import javax.servlet.Filter;
 import javax.servlet.http.HttpServlet;
 
 import com.vg.web.socket.PrefixWebSocketServlet;
-import com.vg.web.view.JsonView;
-import com.vg.web.view.View;
 import org.eclipse.jetty.alpn.ALPN;
 import org.eclipse.jetty.alpn.server.ALPNServerConnection;
 import org.eclipse.jetty.alpn.server.ALPNServerConnectionFactory;
@@ -36,6 +34,7 @@ import org.eclipse.jetty.server.handler.ContextHandlerCollection;
 import org.eclipse.jetty.server.handler.DefaultHandler;
 import org.eclipse.jetty.server.handler.HandlerCollection;
 import org.eclipse.jetty.server.handler.RequestLogHandler;
+import org.eclipse.jetty.server.handler.gzip.GzipHandler;
 import org.eclipse.jetty.server.session.HashSessionManager;
 import org.eclipse.jetty.servlet.FilterHolder;
 import org.eclipse.jetty.servlet.ServletContextHandler;
@@ -43,6 +42,9 @@ import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
+
+import com.vg.web.view.JsonView;
+import com.vg.web.view.View;
 
 public class HttpServer {
     private HashSessionManager sessionManager;
@@ -127,6 +129,7 @@ public class HttpServer {
 
         http_config.setSecureScheme("https");
         http_config.setSecurePort(httpsPort);
+        http_config.addCustomizer(new SecureRequestCustomizer());
         HttpConnectionFactory http = new HttpConnectionFactory(http_config);
         NegotiatingServerConnectionFactory.checkProtocolNegotiationAvailable();
         SslContextFactory sslContextFactory = new SslContextFactory(keystore.getAbsolutePath());
@@ -136,10 +139,9 @@ public class HttpServer {
         sslContextFactory.setUseCipherSuitesOrder(false);
         sslContextFactory.setIncludeCipherSuites(allCipherSuites());
 
-        HttpConfiguration https_config = new HttpConfiguration(http_config);
-        https_config.addCustomizer(new SecureRequestCustomizer());
+        HttpConfiguration http2_config = new HttpConfiguration(http_config);
 
-        HTTP2ServerConnectionFactory http2 = new HTTP2ServerConnectionFactory(https_config);
+        HTTP2ServerConnectionFactory http2 = new HTTP2ServerConnectionFactory(http2_config);
         ALPNServerConnectionFactory alpn = new ALPNServerConnectionFactory(http2.getProtocol(),
                 HttpVersion.HTTP_1_1.asString().toLowerCase());
         alpn.setDefaultProtocol(http.getProtocol());

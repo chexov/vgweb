@@ -11,10 +11,10 @@ import java.io.InputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.commons.io.IOUtils;
+
 import com.vg.web.MimeTypes;
 import com.vg.web.ServletUtil;
-import com.vg.web.view.View;
-import org.apache.commons.io.IOUtils;
 
 public class CachedFileView implements View {
 
@@ -39,7 +39,7 @@ public class CachedFileView implements View {
                 response.setContentType(contentType);
             }
 
-//            response.setHeader("Accept-Ranges", "bytes");
+            response.setHeader("Accept-Ranges", "bytes");
             long mtime = file.lastModified();
             if (isNotModified(request, mtime)) {
                 response.sendError(304);

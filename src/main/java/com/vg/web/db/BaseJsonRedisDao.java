@@ -1,22 +1,19 @@
 package com.vg.web.db;
 
-import static com.vg.web.GsonFactory.fromJson;
-import static com.vg.web.GsonFactory.gsonToString;
-import static com.vg.web.GsonFactory.toGson;
-import static java.util.Arrays.asList;
-import static java.util.UUID.randomUUID;
-import static org.apache.commons.lang3.StringUtils.isNotBlank;
-
-import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
-
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
-
 import com.vg.web.socket.PubSubRedisChannel;
 import com.vg.web.socket.PubSubUpdateListener;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
+
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+
+import static com.vg.web.GsonFactory.fromJson;
+import static com.vg.web.GsonFactory.gsonToString;
+import static java.util.UUID.randomUUID;
+import static org.apache.commons.lang3.StringUtils.isNotBlank;
 
 public class BaseJsonRedisDao<T> extends RedisDao {
 
@@ -51,7 +48,7 @@ public class BaseJsonRedisDao<T> extends RedisDao {
         withRedisTransactionOnOk(tx -> {
             tx.zadd(kMtime, System.currentTimeMillis(), id);
             tx.hset(kHash(id), fJson, gsonToString(item));
-        } , () -> publishIds(id));
+        } , () -> publish(id));
         return id;
     }
 
@@ -69,6 +66,20 @@ public class BaseJsonRedisDao<T> extends RedisDao {
     }
 
     //U
+    public void update(String id, T item) {
+        updateRedis(r -> {
+            if (_contains(r, id))
+                r.hset(kHash(id), fJson, gsonToString(item));
+        });
+    }
+
+    public boolean contains(String id) {
+        return withRedis(r -> _contains(r, id));
+    }
+
+    private Boolean _contains(Jedis r, String id) {
+        return r.exists(kHash(id));
+    }
 
     //D
     public void deleteTask(String id) {
@@ -84,8 +95,7 @@ public class BaseJsonRedisDao<T> extends RedisDao {
     PubSubUpdateListener mainListener = videoId -> {
         synchronized (listeners) {
             if (listeners.containsKey(videoId)) {
-                listeners.get(videoId)
-                         .forEach(x -> x.onMessage(videoId));
+                listeners.get(videoId).forEach(x -> x.onMessage(videoId));
             }
             allMessagesListeners.forEach(x -> x.onMessage(videoId));
         }
@@ -118,16 +128,6 @@ public class BaseJsonRedisDao<T> extends RedisDao {
         if (pubSub != null) {
             pubSub.publish(message);
         }
-    }
-
-    private void publishJson(Object src) {
-        if (pubSub != null) {
-            pubSub.publish(toGson(src));
-        }
-    }
-
-    public void publishIds(String... ids) {
-        publishJson(asList(ids));
     }
 
     public void subscribe(PubSubUpdateListener listener) {
