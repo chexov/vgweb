@@ -1,9 +1,8 @@
 package com.vg.web.view;
 
-import java.io.IOException;
-
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
 
 public class RedirectView implements View {
     private String redirect;
