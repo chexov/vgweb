@@ -7,12 +7,15 @@ import com.vg.web.socket.PubSubUpdateListener;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import static com.vg.web.GsonFactory.fromJson;
 import static com.vg.web.GsonFactory.gsonToString;
 import static java.util.UUID.randomUUID;
+import static java.util.stream.Collectors.toList;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
 
 public class BaseJsonRedisDao<T> extends RedisDao {
@@ -63,6 +66,26 @@ public class BaseJsonRedisDao<T> extends RedisDao {
 
     protected T _get(Jedis r, String id) {
         return isNotBlank(id) ? fromJson(r.hget(kHash(id), fJson), _class) : null;
+    }
+
+    public List<T> getLatest(String startId, long count) {
+        return withRedis(r -> {
+            Set<String> ids;
+            if (startId == null) {
+                ids = r.zrevrange(kMtime, 0, count - 1);
+            } else {
+                Long start = r.zrevrank(kMtime, startId);
+                if (start != null) {
+                    ids = r.zrevrange(kMtime, start, start + count - 1);
+                } else {
+                    ids = Collections.emptySet();
+                }
+            }
+
+            return ids.stream()
+                    .map(id -> _get(r, id))
+                    .collect(toList());
+        });
     }
 
     //U
