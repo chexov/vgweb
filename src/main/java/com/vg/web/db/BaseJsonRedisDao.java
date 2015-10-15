@@ -7,6 +7,7 @@ import com.vg.web.socket.PubSubRedisChannel;
 import com.vg.web.socket.PubSubUpdateListener;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
+import redis.clients.jedis.Transaction;
 
 import java.util.Collections;
 import java.util.List;
@@ -50,8 +51,7 @@ public class BaseJsonRedisDao<T> extends RedisDao {
     public String create(T item) {
         String id = newId(item);
         withRedisTransactionOnOk(tx -> {
-            tx.zadd(kMtime, System.currentTimeMillis(), id);
-            tx.hset(kHash(id), fJson, gsonToString(item));
+            create(tx, id, item);
         } , () -> publishId(id));
         return id;
     }
@@ -63,6 +63,11 @@ public class BaseJsonRedisDao<T> extends RedisDao {
         } else {
             System.err.println("Item does not exist but should " + itemId);
         }
+    }
+
+    protected void create(Transaction tx, String id, T item) {
+        tx.zadd(kMtime, System.currentTimeMillis(), id);
+        tx.hset(kHash(id), fJson, gsonToString(item));
     }
 
     protected String newId(T item) {
@@ -93,16 +98,18 @@ public class BaseJsonRedisDao<T> extends RedisDao {
             }
 
             return ids.stream()
-                    .map(id -> _get(r, id))
-                    .collect(toList());
+                      .map(id -> _get(r, id))
+                      .collect(toList());
         });
     }
 
     //U
     public void update(String id, T item) {
         updateRedis(r -> {
-            if (_contains(r, id))
+            if (_contains(r, id)) {
                 r.hset(kHash(id), fJson, gsonToString(item));
+                publish(id);
+            }
         });
     }
 
