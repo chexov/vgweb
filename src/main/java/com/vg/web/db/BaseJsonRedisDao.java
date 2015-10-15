@@ -167,6 +167,8 @@ public class BaseJsonRedisDao<T> extends RedisDao {
     public void publish(String message) {
         if (pubSub != null) {
             pubSub.publish(message);
+        } else {
+            System.err.println(this + " publish() called but pubsub is null");
         }
     }
 
