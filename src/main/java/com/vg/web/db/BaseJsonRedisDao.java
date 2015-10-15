@@ -56,7 +56,7 @@ public class BaseJsonRedisDao<T> extends RedisDao {
         return id;
     }
 
-    private void publishId(String itemId) {
+    public void publishId(String itemId) {
         T o = get(itemId);
         if (o != null) {
             publish(GsonFactory.gsonToString(o));
