@@ -2,6 +2,7 @@ package com.vg.web.db;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
+import com.vg.web.GsonFactory;
 import com.vg.web.socket.PubSubRedisChannel;
 import com.vg.web.socket.PubSubUpdateListener;
 import redis.clients.jedis.Jedis;
@@ -51,8 +52,17 @@ public class BaseJsonRedisDao<T> extends RedisDao {
         withRedisTransactionOnOk(tx -> {
             tx.zadd(kMtime, System.currentTimeMillis(), id);
             tx.hset(kHash(id), fJson, gsonToString(item));
-        } , () -> publish(id));
+        } , () -> publishId(id));
         return id;
+    }
+
+    private void publishId(String itemId) {
+        T o = get(itemId);
+        if (o != null) {
+            publish(GsonFactory.gsonToString(o));
+        } else {
+            System.err.println("Item does not exist but should " + itemId);
+        }
     }
 
     protected String newId(T item) {
