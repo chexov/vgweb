@@ -108,7 +108,7 @@ public class BaseJsonRedisDao<T> extends RedisDao {
         updateRedis(r -> {
             if (_contains(r, id)) {
                 r.hset(kHash(id), fJson, gsonToString(item));
-                publish(id);
+                publishId(id);
             }
         });
     }
