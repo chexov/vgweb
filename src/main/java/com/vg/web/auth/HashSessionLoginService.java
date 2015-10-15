@@ -39,6 +39,10 @@ public class HashSessionLoginService implements ILoginService {
         } else if (useCookies && !StringUtils.defaultString(request.getHeader("User-Agent")).contains("CFNetwork")) {
             session = request.getSession(false);
         }
+        if (!sessionManager.isValid(session)) {
+            sessionManager.removeSession(session, true);
+            session = null;
+        }
 
         return session;
     }
