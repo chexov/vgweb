@@ -52,7 +52,7 @@ public class BaseJsonRedisDao<T> extends RedisDao {
         String id = newId(item);
         withRedisTransactionOnOk(tx -> {
             create(tx, id, item);
-        } , () -> publishId(id));
+        } , () -> publish(id));
         return id;
     }
 
@@ -97,9 +97,7 @@ public class BaseJsonRedisDao<T> extends RedisDao {
                 }
             }
 
-            return ids.stream()
-                      .map(id -> _get(r, id))
-                      .collect(toList());
+            return ids.stream().map(id -> _get(r, id)).collect(toList());
         });
     }
 
@@ -108,7 +106,7 @@ public class BaseJsonRedisDao<T> extends RedisDao {
         updateRedis(r -> {
             if (_contains(r, id)) {
                 r.hset(kHash(id), fJson, gsonToString(item));
-                publishId(id);
+                publish(id);
             }
         });
     }
