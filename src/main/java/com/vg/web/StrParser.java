@@ -30,6 +30,10 @@ public class StrParser {
         return iterator.hasNext() ? parseLong(iterator.next()) : 0;
     }
 
+    public long nextLong(long defaultValue) {
+        return iterator.hasNext() ? parseLong(iterator.next()) : defaultValue;
+    }
+
     public double nextDouble() {
         return iterator.hasNext() ? parseDouble(iterator.next()) : 0.;
     }
