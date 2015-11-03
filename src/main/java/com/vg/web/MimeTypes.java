@@ -18,6 +18,8 @@ public class MimeTypes {
         mimetypes.put("png", "image/png");
         mimetypes.put("svg", "image/svg+xml");
         mimetypes.put("svgz", "image/svg+xml");
+        mimetypes.put("mpd", "application/dash+xml");
+        mimetypes.put("m3u8", "audio/x-mpegurl");
 
         mimetypes.put("woff", "application/font-woff");
         mimetypes.put("woff2", "application/font-woff2");
@@ -42,6 +44,7 @@ public class MimeTypes {
         mimetypes.put("ogg", "audio/ogg");
         mimetypes.put("mp3", "audio/mpeg");
         mimetypes.put("mp4", "video/mp4");
+        mimetypes.put("m4s", "video/mp4");
         mimetypes.put("webm", "video/webm");
         mimetypes.put("swf", "application/x-shockwave-flash");
     }

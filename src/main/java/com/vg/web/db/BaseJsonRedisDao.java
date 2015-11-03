@@ -115,7 +115,7 @@ public class BaseJsonRedisDao<T> extends RedisDao {
         return withRedis(r -> _contains(r, id));
     }
 
-    private Boolean _contains(Jedis r, String id) {
+    protected Boolean _contains(Jedis r, String id) {
         return r.exists(kHash(id));
     }
 
