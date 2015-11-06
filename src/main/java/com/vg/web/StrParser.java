@@ -61,7 +61,7 @@ public class StrParser {
         if (pathInfo.startsWith("/")) {
             pathInfo = pathInfo.substring(1);
         }
-        return new StrParser(pathInfo, "/");
+        return new StrParser(pathInfo, "/+");
     }
 
     public float parseFloat(float defaultValue) {
