@@ -8,6 +8,36 @@
     <artifactId>vgweb</artifactId>
     <version>1.1.3</version>
 
+    <repositories>
+        <repository>
+            <id>sonatype</id>
+            <name>ossrh</name>
+            <url>https://oss.sonatype.org/content/repositories/jetty-releases</url>
+        </repository>
+        <repository>
+            <id>central</id>
+            <name>Maven Repository Switchboard</name>
+            <layout>default</layout>
+            <url>http://repo1.maven.org/maven2</url>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+        <repository>
+            <id>Dropbox/m2</id>
+            <url>file://${user.home}/Dropbox/m2/repository</url>
+        </repository>
+    </repositories>
+    <distributionManagement>
+        <repository>
+            <uniqueVersion>false</uniqueVersion>
+            <id>DropboxM2</id>
+            <name>Corporate Repository</name>
+            <url>file://${user.home}/Dropbox/m2/repository</url>
+            <layout>default</layout>
+        </repository>
+    </distributionManagement>
+
     <build>
         <plugins>
             <plugin>
