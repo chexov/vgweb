@@ -13,6 +13,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Consumer;
 
 import static com.vg.web.GsonFactory.fromJson;
 import static com.vg.web.GsonFactory.gsonToString;
@@ -178,4 +179,12 @@ public class BaseJsonRedisDao<T> extends RedisDao {
         allMessagesListeners.remove(listener);
     }
 
+    protected void updateAndPublish(String id, Consumer<Jedis> update) {
+        updateRedis(r -> {
+            if (_contains(r, id)) {
+                update.accept(r);
+                publish(id);
+            }
+        });
+    }
 }
