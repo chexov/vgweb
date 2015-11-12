@@ -44,6 +44,10 @@ public class ErrorView implements View {
         this.httpResponse = httpResponse;
     }
 
+    public static View badRequestJs(String descr) {
+        return new JsonView(400, ImmutableMap.of("error", descr));
+    }
+
     public void view(HttpServletRequest request, HttpServletResponse response) throws IOException {
         try {
             response.setStatus(this.httpResponse);
