@@ -45,7 +45,6 @@ public class Controller extends HttpServlet implements Servlet {
         try {
             View view = get(request, pathInfoParser(request.getPathInfo()));
             if (view != null) {
-                response.addHeader("Access-Control-Allow-Origin", "*");
                 view.view(request, response);
             }
         } catch (Exception e) {
