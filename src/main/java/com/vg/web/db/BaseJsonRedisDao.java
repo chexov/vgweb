@@ -106,10 +106,16 @@ public class BaseJsonRedisDao<T> extends RedisDao {
     public void update(String id, T item) {
         updateRedis(r -> {
             if (_contains(r, id)) {
-                r.hset(kHash(id), fJson, gsonToString(item));
+                withRedisTransaction(r, tx -> {
+                    _update(tx, id, item);
+                });
                 publish(id);
             }
         });
+    }
+
+    protected void _update(Transaction tx, String id, T item) {
+        tx.hset(kHash(id), fJson, gsonToString(item));
     }
 
     public boolean contains(String id) {

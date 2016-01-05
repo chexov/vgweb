@@ -44,6 +44,18 @@ public abstract class RedisDao {
         withRedisTransactionOnOk(r, (Runnable) null);
     }
 
+    protected void withRedisTransaction(Jedis redis, Consumer<Transaction> tx) {
+        Transaction transaction = null;
+        try {
+            transaction = redis.multi();
+            tx.accept(transaction);
+            transaction.exec();
+            transaction = null;
+        } finally {
+            rollback(transaction);
+        }
+    }
+
     protected void withRedisTransactionOnOk(Consumer<Transaction> r, Runnable onOk) {
         Jedis redis = getRedis();
         Transaction transaction = null;
