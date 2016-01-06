@@ -102,4 +102,17 @@ public class ErrorView implements View {
     public int getHttpResponse() {
         return httpResponse;
     }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj != null && obj instanceof ErrorView) {
+            return getHttpResponse() == ((ErrorView) obj).getHttpResponse();
+        }
+        return super.equals(obj);
+    }
+
+    @Override
+    public int hashCode() {
+        return Integer.hashCode(getHttpResponse());
+    }
 }
