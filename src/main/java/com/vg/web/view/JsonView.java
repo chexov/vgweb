@@ -36,5 +36,9 @@ public class JsonView implements View {
     public Object getObject() {
         return obj;
     }
+    
+    public static View prettyJson(Object obj) {
+        return new JsonView(obj);
+    }
 
 }

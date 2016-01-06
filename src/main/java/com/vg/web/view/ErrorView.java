@@ -18,7 +18,13 @@ import com.google.common.collect.ImmutableMap;
 public class ErrorView implements View {
 
     //    public final static Logger log = LogManager.getLogger(ErrorView.class);
+    public static final ErrorView OK = new ErrorView(200);
+    public static ErrorView NotModified = new ErrorView(304);
+
     public final static ErrorView BAD_REQUEST = new ErrorView(400);
+    public final static ErrorView BadRequest = BAD_REQUEST;
+    public final static ErrorView Unauthorized = new ErrorView(401);
+
     public final static ErrorView NotFound = new ErrorView(404);
     public final static ErrorView Conflict = new ErrorView(409);
     public final static ErrorView Forbidden = new ErrorView(403);
@@ -91,5 +97,9 @@ public class ErrorView implements View {
         } catch (final EofException e) {
             //            log.warn("Browser window closed before page were ready for view.");
         }
+    }
+
+    public int getHttpResponse() {
+        return httpResponse;
     }
 }
