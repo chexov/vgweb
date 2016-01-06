@@ -115,4 +115,9 @@ public class ErrorView implements View {
     public int hashCode() {
         return Integer.hashCode(getHttpResponse());
     }
+
+    @Override
+    public String toString() {
+        return "ErrorView(" + getHttpResponse() + ")";
+    }
 }
