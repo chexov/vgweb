@@ -4,6 +4,7 @@ import java.awt.Dimension;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Currency;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -19,6 +20,7 @@ public class GsonFactory {
         GsonBuilder builder = new GsonBuilder();
         builder.registerTypeAdapter(File.class, FileDeserializer.INSTANCE);
         builder.registerTypeAdapter(Dimension.class, new DimensionSerializer());
+        builder.registerTypeAdapter(Currency.class, new CurrencySerializer());
         builder.setPrettyPrinting();
         if (serializeNulls)
             builder.serializeNulls();
@@ -28,7 +30,7 @@ public class GsonFactory {
     private static Gson createNoPretty(boolean serializeNulls) {
         GsonBuilder builder = new GsonBuilder();
         builder.registerTypeAdapter(File.class, FileDeserializer.INSTANCE);
-        builder.registerTypeAdapter(Dimension.class, new DimensionSerializer());
+        builder.registerTypeAdapter(Currency.class, new CurrencySerializer());
         if (serializeNulls)
             builder.serializeNulls();
         return builder.create();
