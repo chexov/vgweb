@@ -29,6 +29,7 @@ import javax.servlet.http.HttpServlet;
 import java.io.File;
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
@@ -222,7 +223,15 @@ public class HttpServer {
     }
 
     public void addFilter(String path, Filter filter) {
-        context.addFilter(new FilterHolder(filter), path, null);
+        addFilter(path, filter, null);
+    }
+
+    public void addFilter(String path, Filter filter, Map<String, String> initParameters) {
+        FilterHolder holder = new FilterHolder(filter);
+        if (initParameters != null) {
+            holder.setInitParameters(initParameters);
+        }
+        context.addFilter(holder, path, null);
     }
 
     public HashSessionManager getSessionManager() {
