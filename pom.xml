@@ -11,9 +11,8 @@
 	</properties>
 	<repositories>
 		<repository>
-			<id>sonatype</id>
-			<name>ossrh</name>
-			<url>https://oss.sonatype.org/content/repositories/jetty-releases</url>
+			<id>DropboxM2</id>
+			<url>file://${user.home}/Dropbox/m2/repository</url>
 		</repository>
 		<repository>
 			<id>central</id>
@@ -25,8 +24,9 @@
 			</snapshots>
 		</repository>
 		<repository>
-			<id>DropboxM2</id>
-			<url>file://${user.home}/Dropbox/m2/repository</url>
+			<id>sonatype</id>
+			<name>ossrh</name>
+			<url>https://oss.sonatype.org/content/repositories/jetty-releases</url>
 		</repository>
 	</repositories>
 	<distributionManagement>
