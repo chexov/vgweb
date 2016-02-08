@@ -24,6 +24,9 @@ public class ContentRangeFileView implements View {
     public ContentRangeFileView(File file, ContentRange range) {
         this.file = file;
         this.range = range;
+        if (range.getEnd() + 1 > file.length()) {
+            throw new IllegalArgumentException("content range outside of file");
+        }
     }
 
     @Override

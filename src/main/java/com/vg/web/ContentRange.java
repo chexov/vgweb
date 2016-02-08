@@ -32,6 +32,7 @@ public class ContentRange {
         String[] string = headerValue.split("=")[1].split("-");
         long start = parseLong(string[0]);
         long end = string.length == 1 ? fileLength - 1 : parseLong(string[1]);
+        end = Math.min(end, fileLength - 1);
         return new ContentRange(start, end, fileLength);
     }
 
