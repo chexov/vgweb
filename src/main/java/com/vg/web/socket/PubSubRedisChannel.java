@@ -60,7 +60,7 @@ public class PubSubRedisChannel extends RedisDao {
         listeners.add(listener);
 
         synchronized (this) {
-            if (redisListener == null) {
+            if (pubsubThread == null) {
                 pubsubThread = newSingleThreadScheduledExecutor(new DaemonThreadFactory(
                         PubSubRedisChannel.class.getSimpleName()));
                 pubsubJob = pubsubThread.scheduleWithFixedDelay(redisListener, 0, 1000, TimeUnit.MILLISECONDS);
