@@ -5,7 +5,7 @@
 
 	<groupId>com.vg</groupId>
 	<artifactId>vgweb</artifactId>
-	<version>1.1.14</version>
+	<version>1.2.0</version>
 	<properties>
 		<jetty.version>9.3.7.RC0</jetty.version>
 	</properties>
@@ -130,6 +130,14 @@
 			<groupId>seekable-io</groupId>
 			<artifactId>seekable-io</artifactId>
 			<version>1.0.5</version>
+		</dependency>
+			<dependency>
+			<groupId>org.st-js</groupId>
+			<artifactId>server</artifactId>
+<!-- 
+<version>3.3.1-SNAPSHOT</version> 
+-->
+						<version>3.3.0</version>
 		</dependency>
 	</dependencies>
 </project>
