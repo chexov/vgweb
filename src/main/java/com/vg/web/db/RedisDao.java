@@ -4,6 +4,7 @@ import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.Transaction;
 
+import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -40,50 +41,53 @@ public abstract class RedisDao {
         return pool.getResource();
     }
 
-    protected void withRedisTransaction(Consumer<Transaction> r) {
-        withRedisTransactionOnOk(r, (Runnable) null);
+    protected List<Object> withRedisTransaction(Consumer<Transaction> r) {
+        return withRedisTransactionOnOk(r, (Runnable) null);
     }
 
-    protected void withRedisTransaction(Jedis redis, Consumer<Transaction> tx) {
+    protected List<Object> withRedisTransaction(Jedis redis, Consumer<Transaction> tx) {
         Transaction transaction = null;
         try {
             transaction = redis.multi();
             tx.accept(transaction);
-            transaction.exec();
+            List<Object> exec = transaction.exec();
             transaction = null;
+            return exec;
         } finally {
             rollback(transaction);
         }
     }
 
-    protected void withRedisTransactionOnOk(Consumer<Transaction> r, Runnable onOk) {
+    protected List<Object> withRedisTransactionOnOk(Consumer<Transaction> r, Runnable onOk) {
         Jedis redis = getRedis();
         Transaction transaction = null;
         try {
             transaction = redis.multi();
             r.accept(transaction);
-            transaction.exec();
+            List<Object> exec = transaction.exec();
             transaction = null;
-            if (onOk != null) {
+            if (exec != null && onOk != null) {
                 onOk.run();
             }
+            return exec;
         } finally {
             rollback(transaction);
             redis.close();
         }
     }
 
-    protected void withRedisTransactionOnOk(Consumer<Transaction> r, Consumer<Jedis> onOk) {
+    protected List<Object> withRedisTransactionOnOk(Consumer<Transaction> r, Consumer<Jedis> onOk) {
         Jedis redis = getRedis();
         Transaction transaction = null;
         try {
             transaction = redis.multi();
             r.accept(transaction);
-            transaction.exec();
+            List<Object> exec = transaction.exec();
             transaction = null;
-            if (onOk != null) {
+            if (exec != null && onOk != null) {
                 onOk.accept(redis);
             }
+            return exec;
         } finally {
             rollback(transaction);
             redis.close();

@@ -53,7 +53,7 @@ public class BaseJsonRedisDao<T> extends RedisDao {
         String id = newId(item);
         withRedisTransactionOnOk(tx -> {
             create(tx, id, item);
-        } , () -> publish(id));
+        }, () -> publish(id));
         return id;
     }
 
@@ -81,7 +81,11 @@ public class BaseJsonRedisDao<T> extends RedisDao {
     }
 
     protected T _get(Jedis r, String id) {
-        return isNotBlank(id) ? fromJson(r.hget(kHash(id), fJson), _class) : null;
+        try {
+            return isNotBlank(id) ? fromJson(r.hget(kHash(id), fJson), _class) : null;
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     public List<T> getLatest(String startId, long count) {
@@ -140,9 +144,9 @@ public class BaseJsonRedisDao<T> extends RedisDao {
     PubSubUpdateListener mainListener = videoId -> {
         synchronized (listeners) {
             if (listeners.containsKey(videoId)) {
-                listeners.get(videoId).forEach(x -> x.onMessage(videoId));
+                listeners.get(videoId).forEach(x -> x.accept(videoId));
             }
-            allMessagesListeners.forEach(x -> x.onMessage(videoId));
+            allMessagesListeners.forEach(x -> x.accept(videoId));
         }
     };
 

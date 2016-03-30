@@ -37,6 +37,13 @@ public class JsonView implements View {
         return obj;
     }
     
+    public static View jsonView(Object res) {
+        if (res == null) {
+            return ErrorView.NotFound;
+        }
+        return new JsonView(res);
+    }
+
     public static View prettyJson(Object obj) {
         return new JsonView(obj);
     }

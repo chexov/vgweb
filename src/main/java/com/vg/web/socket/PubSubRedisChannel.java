@@ -47,7 +47,7 @@ public class PubSubRedisChannel extends RedisDao {
         @Override
         public void onMessage(String channel, String message) {
             for (PubSubUpdateListener listener : listeners) {
-                listener.onMessage(message);
+                listener.accept(message);
             }
         }
     }
