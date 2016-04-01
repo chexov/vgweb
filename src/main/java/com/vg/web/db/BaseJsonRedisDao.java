@@ -154,10 +154,10 @@ public class BaseJsonRedisDao<T> extends RedisDao {
     }
 
     public T update(String id, Consumer<T> transformer) {
-        return update(id, transformer, null);
+        return update(id, null, transformer);
     }
 
-    public T update(String id, Consumer<T> transformer, Predicate<T> predicate) {
+    public T update(String id, Predicate<T> predicate, Consumer<T> transformer) {
         T j;
         do {
             j = get(id);
