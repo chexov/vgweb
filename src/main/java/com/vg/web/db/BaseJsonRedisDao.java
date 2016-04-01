@@ -1,33 +1,36 @@
 package com.vg.web.db;
 
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.Multimap;
-import com.vg.web.GsonFactory;
-import com.vg.web.socket.PubSubRedisChannel;
-import com.vg.web.socket.PubSubUpdateListener;
-import redis.clients.jedis.Jedis;
-import redis.clients.jedis.JedisPool;
-import redis.clients.jedis.Transaction;
-
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.function.Consumer;
-
 import static com.vg.web.GsonFactory.fromJson;
 import static com.vg.web.GsonFactory.gsonToString;
 import static java.util.UUID.randomUUID;
 import static java.util.stream.Collectors.toList;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
 
+import java.lang.reflect.Field;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
+
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.Multimap;
+import com.vg.web.GsonFactory;
+import com.vg.web.socket.PubSubRedisChannel;
+import com.vg.web.socket.PubSubUpdateListener;
+
+import redis.clients.jedis.Jedis;
+import redis.clients.jedis.JedisPool;
+import redis.clients.jedis.Transaction;
+
 public class BaseJsonRedisDao<T> extends RedisDao {
 
-    private static final String fJson = "json";
+    protected static final String fRevision = "_rev";
+    protected static final String fJson = "json";
 
     protected String kHash(String id) {
         return _kHash + "_" + id;
-
     }
 
     protected final String kMtime;
@@ -46,6 +49,10 @@ public class BaseJsonRedisDao<T> extends RedisDao {
         this.kMtime = kMtime;
         this.kChannel = kChannel;
         this._class = _class;
+        try {
+            this.revisionField = _class.getDeclaredField("_rev");
+        } catch (Exception e) {
+        }
     }
 
     //C
@@ -68,7 +75,8 @@ public class BaseJsonRedisDao<T> extends RedisDao {
 
     protected void create(Transaction tx, String id, T item) {
         tx.zadd(kMtime, System.currentTimeMillis(), id);
-        tx.hset(kHash(id), fJson, gsonToString(item));
+        tx.hset(kHash(id), fJson(0), gsonToString(item));
+        tx.hset(kHash(id), fRevision, "1");
     }
 
     protected String newId(T item) {
@@ -82,10 +90,49 @@ public class BaseJsonRedisDao<T> extends RedisDao {
 
     protected T _get(Jedis r, String id) {
         try {
-            return isNotBlank(id) ? fromJson(r.hget(kHash(id), fJson), _class) : null;
+            if (isNotBlank(id)) {
+                long rev = _dbRev(r, id);
+                String fJson2 = fJson(rev);
+                String hget = r.hget(kHash(id), fJson2);
+                T item = fromJson(hget, _class);
+                setRevision(item, rev);
+                return item;
+            }
+            return null;
         } catch (Exception e) {
             return null;
         }
+    }
+
+    private long _nextRev(Jedis r, String id) {
+        return toLong(r.hget(kHash(id), fRevision));
+    }
+
+    private void setRevision(T item, long rev) {
+        if (revisionField != null) {
+            try {
+                revisionField.set(item, rev);
+            } catch (Exception e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private long getRevision(T item) {
+        if (revisionField != null) {
+            try {
+                return toLong(revisionField.get(item));
+            } catch (Exception e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+        }
+        return -1;
+    }
+
+    private String fJson(long rev) {
+        return rev <= 0 ? fJson : fJson + "" + rev;
     }
 
     public List<T> getLatest(String startId, long count) {
@@ -106,20 +153,80 @@ public class BaseJsonRedisDao<T> extends RedisDao {
         });
     }
 
+    public T update(String id, Consumer<T> transformer) {
+        return update(id, transformer, null);
+    }
+
+    public T update(String id, Consumer<T> transformer, Predicate<T> predicate) {
+        T j;
+        do {
+            j = get(id);
+            if (j == null || (predicate != null && !predicate.test(j))) {
+                break;
+            }
+            transformer.accept(j);
+        } while (!update(id, j));
+        return j;
+    }
+
     //U
-    public void update(String id, T item) {
-        updateRedis(r -> {
-            if (_contains(r, id)) {
+    public boolean update(String id, T item) {
+        return withRedis(r -> {
+            if (!_contains(r, id)) {
+                return false;
+            }
+            long rev = getRevision(item);
+            if (rev == -1) {
                 withRedisTransaction(r, tx -> {
                     _update(tx, id, item);
                 });
                 publish(id);
+                return true;
             }
+            r.watch(kHash(id));
+            long dbrev = _dbRev(r, id);
+            if (dbrev != rev) {
+                return false;
+            }
+            List<Object> result = withRedisTransaction(r, tx -> {
+                _update(tx, id, item);
+                tx.hincrBy(kHash(id), fRevision, 1);
+            });
+            if (result != null) {
+                publish(id);
+                return true;
+            }
+            return false;
         });
     }
 
+    private long _dbRev(Jedis r, String id) {
+        return Math.max(0, _nextRev(r, id) - 1);
+    }
+
+    private static long toLong(Object object) {
+        return toLong(object, 0);
+    }
+
+    private static long toLong(Object object, long defaultValue) {
+        if (object == null) {
+            return defaultValue;
+        }
+        if (object instanceof Number) {
+            return ((Number) object).longValue();
+        } else if (object instanceof String) {
+            try {
+                return Long.parseLong((String) object);
+            } catch (NumberFormatException nfe) {
+                return defaultValue;
+            }
+        }
+        return defaultValue;
+    }
+
     protected void _update(Transaction tx, String id, T item) {
-        tx.hset(kHash(id), fJson, gsonToString(item));
+        String gsonToString = gsonToString(item);
+        tx.hset(kHash(id), fJson(getRevision(item) + 1), gsonToString);
     }
 
     public boolean contains(String id) {
@@ -131,7 +238,7 @@ public class BaseJsonRedisDao<T> extends RedisDao {
     }
 
     //D
-    public void deleteTask(String id) {
+    public void delete(String id) {
         withRedisTransaction((transaction) -> {
             transaction.del(kHash(id));
             transaction.zrem(kMtime, id);
@@ -141,14 +248,15 @@ public class BaseJsonRedisDao<T> extends RedisDao {
     private final Multimap<String, PubSubUpdateListener> listeners = ArrayListMultimap.create();
     private final List<PubSubUpdateListener> allMessagesListeners = new CopyOnWriteArrayList<>();
 
-    PubSubUpdateListener mainListener = videoId -> {
+    PubSubUpdateListener mainListener = id -> {
         synchronized (listeners) {
-            if (listeners.containsKey(videoId)) {
-                listeners.get(videoId).forEach(x -> x.accept(videoId));
+            if (listeners.containsKey(id)) {
+                listeners.get(id).forEach(x -> x.accept(id));
             }
-            allMessagesListeners.forEach(x -> x.accept(videoId));
+            allMessagesListeners.forEach(x -> x.accept(id));
         }
     };
+    private Field revisionField;
 
     public void startPubSub() {
         this.pubSub = new PubSubRedisChannel(pool, kChannel);
@@ -176,8 +284,6 @@ public class BaseJsonRedisDao<T> extends RedisDao {
     public void publish(String message) {
         if (pubSub != null) {
             pubSub.publish(message);
-        } else {
-            System.err.println(this + " publish() called but pubsub is null");
         }
     }
 
