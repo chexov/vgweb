@@ -92,16 +92,18 @@ public class BaseJsonRedisDao<T> extends RedisDao {
         try {
             if (isNotBlank(id)) {
                 long rev = _dbRev(r, id);
-                String fJson2 = fJson(rev);
-                String hget = r.hget(kHash(id), fJson2);
+                String hget = r.hget(kHash(id), fJson(rev));
                 T item = fromJson(hget, _class);
-                setRevision(item, rev);
+                if (item == null) {
+                    System.err.println("null object at " + kHash(id) + " " + fJson(rev));
+                } else {
+                    setRevision(item, rev);
+                }
                 return item;
             }
-            return null;
         } catch (Exception e) {
-            return null;
         }
+        return null;
     }
 
     private long _nextRev(Jedis r, String id) {
@@ -171,7 +173,7 @@ public class BaseJsonRedisDao<T> extends RedisDao {
 
     //U
     public boolean update(String id, T item) {
-        return withRedis(r -> {
+        boolean ok = withRedis(r -> {
             if (!_contains(r, id)) {
                 return false;
             }
@@ -198,6 +200,10 @@ public class BaseJsonRedisDao<T> extends RedisDao {
             }
             return false;
         });
+        if (!ok) {
+            System.err.println("error updating " + id);
+        }
+        return ok;
     }
 
     private long _dbRev(Jedis r, String id) {
