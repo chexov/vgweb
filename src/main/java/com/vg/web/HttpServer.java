@@ -9,6 +9,7 @@ import org.eclipse.jetty.alpn.server.ALPNServerConnectionFactory;
 import org.eclipse.jetty.http.HttpVersion;
 import org.eclipse.jetty.http2.server.HTTP2CServerConnectionFactory;
 import org.eclipse.jetty.http2.server.HTTP2ServerConnectionFactory;
+import org.eclipse.jetty.io.ByteBufferPool;
 import org.eclipse.jetty.server.*;
 import org.eclipse.jetty.server.handler.ContextHandlerCollection;
 import org.eclipse.jetty.server.handler.DefaultHandler;
@@ -18,18 +19,23 @@ import org.eclipse.jetty.server.session.HashSessionManager;
 import org.eclipse.jetty.servlet.FilterHolder;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
+import org.eclipse.jetty.util.annotation.Name;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
+import org.eclipse.jetty.util.thread.Scheduler;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 import javax.servlet.Filter;
 import javax.servlet.http.HttpServlet;
+import javax.swing.plaf.SliderUI;
+
 import java.io.File;
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Map;
+import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
@@ -48,6 +54,8 @@ public class HttpServer {
     }
 
     private File sessionsDir;
+    private int acceptors;
+    private int selectors;
 
     public static void debugALPN() {
         ALPN.debug = true;
@@ -60,8 +68,12 @@ public class HttpServer {
 
     public HttpServer(int port, File sessionsDir) {
         this.sessionsDir = sessionsDir;
+        
+        acceptors = 1;
+        selectors = Runtime.getRuntime().availableProcessors() * 3;
+        int minThreads = acceptors + selectors + Runtime.getRuntime().availableProcessors();
 
-        QueuedThreadPool threadPool = new QueuedThreadPool(1024, 8);
+        QueuedThreadPool threadPool = new QueuedThreadPool(1024, minThreads);
         threadPool.setDaemon(true);
 
         jetty = new Server(threadPool);
@@ -101,7 +113,11 @@ public class HttpServer {
         HttpConnectionFactory http = new HttpConnectionFactory(http_config);
         HTTP2CServerConnectionFactory http2c = new HTTP2CServerConnectionFactory(http_config);
 
-        ServerConnector httpConnector = new ServerConnector(jetty, http, http2c);
+        ServerConnector httpConnector; // = new ServerConnector(jetty, http, http2c);
+        httpConnector = new ServerConnector(jetty, null, null, null,
+                acceptors,
+                selectors, http, http2c);
+
         httpConnector.setPort(httpPort);
         httpConnector.setIdleTimeout(500000);
 
