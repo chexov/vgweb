@@ -37,7 +37,7 @@ public class BaseJsonRedisDao<T> extends RedisDao {
     protected final String kChannel;
     protected final Class<T> _class;
     protected final String _kHash;
-    private PubSubRedisChannel pubSub;
+    private final PubSubRedisChannel pubSub;
 
     public BaseJsonRedisDao(JedisPool pool, String kPrefix, Class<T> _class) {
         this(pool, kPrefix + "_obj", kPrefix + "_mtime", kPrefix + "_channel", _class);
@@ -53,6 +53,9 @@ public class BaseJsonRedisDao<T> extends RedisDao {
             this.revisionField = _class.getDeclaredField("_rev");
         } catch (Exception e) {
         }
+
+        this.pubSub = new PubSubRedisChannel(pool, kChannel);
+
     }
 
     //C
@@ -265,14 +268,11 @@ public class BaseJsonRedisDao<T> extends RedisDao {
     private Field revisionField;
 
     public void startPubSub() {
-        this.pubSub = new PubSubRedisChannel(pool, kChannel);
         pubSub.subscribe(mainListener);
     }
 
     public void stop() {
-        if (pubSub != null) {
-            this.pubSub.unsubscribe(mainListener);
-        }
+        this.pubSub.unsubscribe(mainListener);
     }
 
     public void subscribe(String videoId, PubSubUpdateListener listener) {
@@ -288,9 +288,7 @@ public class BaseJsonRedisDao<T> extends RedisDao {
     }
 
     public void publish(String message) {
-        if (pubSub != null) {
-            pubSub.publish(message);
-        }
+        pubSub.publish(message);
     }
 
     public void subscribe(PubSubUpdateListener listener) {
