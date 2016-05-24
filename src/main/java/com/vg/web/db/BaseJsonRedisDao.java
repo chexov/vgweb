@@ -246,12 +246,15 @@ public class BaseJsonRedisDao<T> extends RedisDao {
         return id != null ? r.exists(kHash(id)) : false;
     }
 
-    //D
     public void delete(String id) {
         withRedisTransaction((transaction) -> {
-            transaction.del(kHash(id));
-            transaction.zrem(kMtime, id);
+            delete(transaction, id);
         });
+    }
+
+    protected void delete(Transaction tx, String id) {
+        tx.del(kHash(id));
+        tx.zrem(kMtime, id);
     }
 
     private final Multimap<String, PubSubUpdateListener> listeners = ArrayListMultimap.create();
