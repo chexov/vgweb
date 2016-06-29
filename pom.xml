@@ -134,10 +134,12 @@
 			<dependency>
 			<groupId>org.st-js</groupId>
 			<artifactId>server</artifactId>
-<!-- 
-<version>3.3.1-SNAPSHOT</version> 
--->
-						<version>3.3.0</version>
+			<version>3.3.0</version>
+		</dependency>
+		<dependency>
+			<groupId>io.reactivex</groupId>
+			<artifactId>rxjava</artifactId>
+			<version>1.1.6</version>
 		</dependency>
 	</dependencies>
 </project>
