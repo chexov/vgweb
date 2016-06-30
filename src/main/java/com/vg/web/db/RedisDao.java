@@ -5,8 +5,10 @@ import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.ScanParams;
 import redis.clients.jedis.ScanResult;
 import redis.clients.jedis.Transaction;
+import redis.clients.jedis.Tuple;
 import rx.Observable;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -135,4 +137,17 @@ public abstract class RedisDao {
         }
     }
 
+    public static List<String> zscanKeys(Jedis r, String k) {
+        List<String> keys = new ArrayList<>();
+        String cursor = "0";
+        do {
+            ScanResult<Tuple> zscan = r.zscan(k, cursor);
+            List<Tuple> result = zscan.getResult();
+            for (Tuple t : result) {
+                keys.add(t.getElement());
+            }
+            cursor = zscan.getStringCursor();
+        } while (!"0".equals(cursor));
+        return keys;
+    }
 }
