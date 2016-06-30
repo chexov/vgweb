@@ -67,7 +67,7 @@ public class HttpServer {
 
     public HttpServer(int port, File sessionsDir) {
         this.sessionsDir = sessionsDir;
-        
+
         acceptors = 1;
         selectors = Runtime.getRuntime().availableProcessors() * 3;
         int minThreads = acceptors + selectors + Runtime.getRuntime().availableProcessors();
@@ -85,7 +85,7 @@ public class HttpServer {
         ContextHandlerCollection contexts = new ContextHandlerCollection();
 
         requestLogHandler = new RequestLogHandler();
-        handlers.setHandlers(new Handler[] { contexts, new DefaultHandler(), requestLogHandler });
+        handlers.setHandlers(new Handler[]{contexts, new DefaultHandler(), requestLogHandler});
         jetty.setHandler(handlers);
 
         context = new ServletContextHandler(contexts, "/", true, false);
