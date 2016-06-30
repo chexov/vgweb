@@ -4,6 +4,7 @@ import static java.lang.Long.parseLong;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Collection;
 
 import com.vg.io.SeekableInputStream;
 import com.vg.web.io.LimitedInputStream;
@@ -65,5 +66,25 @@ public class ContentRange {
     public InputStream limitedInputStream(SeekableInputStream in) throws IOException {
         in.seek(getStart());
         return new LimitedInputStream(in, getCount());
+    }
+
+    public boolean overlaps(ContentRange range) {
+        if (this.getCount() <= 0 || range == null || range.getCount() <= 0) {
+            return false;
+        }
+        return range.contains(start) || range.contains(end) || contains(range.start);
+    }
+
+    public boolean contains(long value) {
+        return value >= start && value <= end;
+    }
+
+    public boolean overlapsAny(Collection<ContentRange> ranges) {
+        for (ContentRange r : ranges) {
+            if (this.overlaps(r)) {
+                return true;
+            }
+        }
+        return false;
     }
 }
