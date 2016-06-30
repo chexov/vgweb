@@ -18,8 +18,6 @@ import com.vg.web.ServletUtil;
 
 public class CachedFileView implements View {
 
-    private static final long YEAR = 365L * 24L * 60L * 60L * 1000L;
-
     private final File file;
 
     private final String contentType;

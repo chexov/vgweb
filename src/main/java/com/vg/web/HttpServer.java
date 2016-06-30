@@ -42,20 +42,19 @@ import java.util.function.Function;
 import static org.apache.commons.lang.StringUtils.isNotBlank;
 
 public class HttpServer {
-    private HashSessionManager sessionManager;
+    public HashSessionManager sessionManager;
     protected Server jetty;
-    private ServletContextHandler context;
+    protected ServletContextHandler context;
     private RequestLogHandler requestLogHandler;
     private String accessLogPath;
     private HttpConfiguration http_config;
+    File sessionsDir;
+    private int acceptors;
+    private int selectors;
 
     public static void debugJetty() {
         System.setProperty("org.eclipse.jetty.LEVEL", "DEBUG");
     }
-
-    private File sessionsDir;
-    private int acceptors;
-    private int selectors;
 
     public static void debugALPN() {
         ALPN.debug = true;
