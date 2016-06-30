@@ -2,6 +2,7 @@ package com.vg.web;
 
 import static org.apache.commons.io.IOUtils.closeQuietly;
 
+import javax.servlet.http.HttpServletRequest;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -10,15 +11,12 @@ import java.io.InputStreamReader;
 import java.util.function.Consumer;
 import java.util.zip.GZIPInputStream;
 
-import javax.servlet.http.HttpServletRequest;
-
+import com.google.gson.Gson;
+import com.vg.web.util.WebUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Test;
-
-import com.google.gson.Gson;
-import com.vg.web.util.WebUtils;
 
 public class GsonHelper {
 
@@ -122,17 +120,8 @@ public class GsonHelper {
         return fromJson;
     }
 
-    public boolean toFileAtomic(Object data, File file) throws IOException {
-        String json = toGson(data);
 
-        if (file.getName().endsWith(".gz")) {
-            return atomicWriteByteToFile(WebUtils.gzipString(json), file);
-        } else {
-            return atomicWriteStringToFile(json, file);
-        }
-    }
-
-    private boolean atomicWriteByteToFile(byte[] bytes, File file) throws IOException {
+    private static boolean atomicWriteByteToFile(byte[] bytes, File file) throws IOException {
         File tmp = WebUtils.tmpFile(file);
         FileUtils.writeByteArrayToFile(tmp, bytes);
         return tmp.renameTo(file);
@@ -146,7 +135,7 @@ public class GsonHelper {
      * @return if rename was successful
      * @throws IOException
      */
-    public boolean atomicWriteStringToFile(String data, File file) throws IOException {
+    public static boolean atomicWriteStringToFile(String data, File file) throws IOException {
         File tmp = WebUtils.tmpFile(file);
         FileUtils.writeStringToFile(tmp, data);
         return tmp.renameTo(file);
@@ -156,6 +145,16 @@ public class GsonHelper {
     public void testFromJsonQuietly() throws Exception {
         Integer[] fromJsonQuietly = fromJsonQuietly("qwe", Integer[].class);
         System.out.println(fromJsonQuietly);
+    }
+
+    public boolean toFileAtomic(Object data, File file) throws IOException {
+        String json = toGson(data);
+
+        if (file.getName().endsWith(".gz")) {
+            return atomicWriteByteToFile(WebUtils.gzipString(json), file);
+        } else {
+            return atomicWriteStringToFile(json, file);
+        }
     }
 
 }
