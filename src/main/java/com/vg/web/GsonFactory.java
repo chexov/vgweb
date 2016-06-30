@@ -1,107 +1,175 @@
 package com.vg.web;
 
-import java.awt.Dimension;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Currency;
-import java.util.Date;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import static org.apache.commons.io.IOUtils.closeQuietly;
 
 import javax.servlet.http.HttpServletRequest;
+import java.awt.Dimension;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.lang.reflect.Type;
+import java.util.function.Consumer;
+import java.util.zip.GZIPInputStream;
 
-import org.stjs.javascript.Array;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonDeserializationContext;
+import com.google.gson.JsonDeserializer;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
+import com.google.gson.JsonPrimitive;
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.junit.Test;
 import org.stjs.server.json.gson.JSArrayAdapter;
 import org.stjs.server.json.gson.JSDateAdapter;
 import org.stjs.server.json.gson.JSMapAdapter;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-
 public class GsonFactory {
 
-    private static final Map<java.lang.reflect.Type, Object> adapters = new LinkedHashMap<>();
+    private static final Gson GSON_TOSTRING = builder(false).create();
+    private static final Gson GSON = builder(false).create();
+    private static final Gson GSON_NOPRETTY = builder(false).create();
 
-    public static void registerTypeAdapter(java.lang.reflect.Type type, Object typeAdapter) {
-        adapters.put(type, typeAdapter);
+    private static final GsonFactory.FileDeserializer FILE_DESERIALIZER = new GsonFactory.FileDeserializer();
+
+    private static final class FileDeserializer implements JsonDeserializer<File> {
+        @Override
+        public File deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context)
+                throws JsonParseException {
+            JsonPrimitive primitive = null;
+            if (json instanceof JsonObject) {
+                primitive = ((JsonObject) json).getAsJsonPrimitive("path");
+            } else if (json instanceof JsonPrimitive) {
+                primitive = (JsonPrimitive) json;
+            }
+            if (primitive != null) {
+                String asString = primitive.getAsString();
+                if (asString != null) {
+                    return new File(asString);
+                }
+            }
+
+            return null;
+        }
     }
 
-    static {
-        registerTypeAdapter(File.class, FileDeserializer.INSTANCE);
-        registerTypeAdapter(Dimension.class, new DimensionSerializer());
-        registerTypeAdapter(Currency.class, new CurrencySerializer());
-        registerTypeAdapter(org.stjs.javascript.Map.class, new JSMapAdapter());
-        registerTypeAdapter(org.stjs.javascript.Array.class, new JSArrayAdapter());
-        registerTypeAdapter(org.stjs.javascript.Date.class, new JSDateAdapter());
+    public static <T> T gsonClone(T t) {
+        String json = GSON_TOSTRING.toJson(t);
+        T fromJson = (T) GSON_TOSTRING.fromJson(json, t.getClass());
+        return fromJson;
     }
 
-    private static Gson create(boolean serializeNulls) {
+    public static GsonBuilder builder(boolean serializeNulls) {
         GsonBuilder builder = new GsonBuilder();
-        adapters.forEach(builder::registerTypeAdapter);
+        builder.registerTypeAdapter(File.class, FILE_DESERIALIZER);
+        builder.registerTypeAdapter(Dimension.class, new DimensionSerializer());
+        builder.registerTypeAdapter(org.stjs.javascript.Map.class, new JSMapAdapter());
+        builder.registerTypeAdapter(org.stjs.javascript.Array.class, new JSArrayAdapter());
+        builder.registerTypeAdapter(org.stjs.javascript.Date.class, new JSDateAdapter());
         builder.setPrettyPrinting();
         if (serializeNulls)
             builder.serializeNulls();
-        return builder.create();
-    }
-
-    private static Gson createNoPretty(boolean serializeNulls) {
-        GsonBuilder builder = new GsonBuilder();
-        adapters.forEach((t, u) -> {
-            builder.registerTypeAdapter(t, u);
-        });
-        if (serializeNulls)
-            builder.serializeNulls();
-        return builder.create();
-    }
-
-    private static GsonHelper helper = null;
-
-    public static <T> T gsonClone(T t) {
-        return helper().gsonClone(t);
-    }
-
-    private static GsonHelper helper() {
-        if (helper != null) {
-            return helper;
-        }
-        return helper = new GsonHelper(create(false), createNoPretty(false));
+        return builder;
     }
 
     public static String toGson(Object src) {
-        return helper().toGson(src);
+        return GSON.toJson(src);
+    }
+
+    public static String toGsonNoPretty(Object src) {
+        return GSON_NOPRETTY.toJson(src);
     }
 
     public static <T> T fromFile(File file, Class<T> classOf) {
-        return helper().fromFile(file, classOf);
+        InputStream is = null;
+        try {
+            is = new FileInputStream(file);
+            if (file.getName().endsWith(".gz")) {
+                is = new GZIPInputStream(is);
+            }
+            return GSON.fromJson(IOUtils.toString(is), classOf);
+        } catch (Exception e) {
+            System.err.println("can not read gson from file " + file.getAbsolutePath());
+            throw new RuntimeException(e);
+        } finally {
+            closeQuietly(is);
+        }
+    }
+
+    public static <T> T fromFile(File file, Class<T> classOf, Consumer<Throwable> onError) {
+        InputStream is = null;
+        try {
+            is = new FileInputStream(file);
+            if (file.getName().endsWith(".gz")) {
+                is = new GZIPInputStream(is);
+            }
+            return GSON.fromJson(IOUtils.toString(is), classOf);
+        } catch (Throwable e) {
+            if (onError != null) {
+                onError.accept(e);
+            }
+            return null;
+        } finally {
+            closeQuietly(is);
+        }
     }
 
     public static <T> T fromInputStream(InputStream in, Class<T> classOf) {
-        return helper().fromInputStream(in, classOf);
+        return GSON.fromJson(new InputStreamReader(in), classOf);
     }
 
     public static <T> T fromFile(File file, java.lang.reflect.Type t) {
-        return helper().fromFile(file, t);
+        InputStream is = null;
+        try {
+            is = new FileInputStream(file);
+            if (file.getName().endsWith(".gz")) {
+                is = new GZIPInputStream(is);
+            }
+            return GSON.fromJson(IOUtils.toString(is), t);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        } finally {
+            closeQuietly(is);
+        }
     }
 
     public static String gsonToString(Object o) {
-        return helper().gsonToString(o);
+        return GSON_TOSTRING.toJson(o);
     }
 
     public static <T> T fromRequest(HttpServletRequest request, Class<T> typeOfT) throws Exception {
-        return helper().fromRequest(request, typeOfT);
+        return GSON.fromJson(IOUtils.toString(request.getInputStream()), typeOfT);
     }
 
     public static <T> T fromJson(String json, Class<T> typeOfT) {
-        return helper().fromJson(json, typeOfT);
+        return GSON.fromJson(json, typeOfT);
     }
 
     public static <T> T fromJsonQuietly(String json, Class<T> type) {
-        return helper().fromJsonQuietly(json, type);
+        T fromJson = null;
+        json = StringUtils.defaultIfBlank(json, type.isArray() ? "[]" : "{}");
+        try {
+            fromJson = GsonFactory.fromJson(json, type);
+        } catch (Exception e) {
+            e.printStackTrace();
+            try {
+                fromJson = GsonFactory.fromJson(type.isArray() ? "[]" : "{}", type);
+            } catch (Exception e1) {
+                throw new RuntimeException(e);
+            }
+
+        }
+        return fromJson;
     }
 
-    public static boolean toFileAtomic(Object data, File file) throws IOException {
-        return helper().toFileAtomic(data, file);
+
+    @Test
+    public void testFromJsonQuietly() throws Exception {
+        Integer[] fromJsonQuietly = fromJsonQuietly("qwe", Integer[].class);
+        System.out.println(fromJsonQuietly);
     }
 
 }

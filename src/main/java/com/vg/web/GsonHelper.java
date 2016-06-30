@@ -1,10 +1,13 @@
 package com.vg.web;
 
+import static org.apache.commons.io.IOUtils.closeQuietly;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.function.Consumer;
 import java.util.zip.GZIPInputStream;
 
 import javax.servlet.http.HttpServletRequest;
@@ -72,6 +75,24 @@ public class GsonHelper {
         }
     }
 
+    public <T> T fromFile(File file, Class<T> classOf, Consumer<Throwable> onError) {
+        InputStream is = null;
+        try {
+            is = new FileInputStream(file);
+            if (file.getName().endsWith(".gz")) {
+                is = new GZIPInputStream(is);
+            }
+            return GSON.fromJson(IOUtils.toString(is), classOf);
+        } catch (Throwable e) {
+            if (onError != null) {
+                onError.accept(e);
+            }
+            return null;
+        } finally {
+            closeQuietly(is);
+        }
+    }
+
     public String gsonToString(Object o) {
         return GSON_TOSTRING.toJson(o);
     }
@@ -88,11 +109,11 @@ public class GsonHelper {
         T fromJson = null;
         json = StringUtils.defaultIfBlank(json, type.isArray() ? "[]" : "{}");
         try {
-            fromJson = GsonFactory.fromJson(json, type);
+            fromJson = GSON.fromJson(json, type);
         } catch (Exception e) {
             e.printStackTrace();
             try {
-                fromJson = GsonFactory.fromJson(type.isArray() ? "[]" : "{}", type);
+                fromJson = GSON.fromJson(type.isArray() ? "[]" : "{}", type);
             } catch (Exception e1) {
                 throw new RuntimeException(e);
             }
