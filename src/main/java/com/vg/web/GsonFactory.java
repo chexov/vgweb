@@ -8,18 +8,11 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.lang.reflect.Type;
 import java.util.function.Consumer;
 import java.util.zip.GZIPInputStream;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.JsonDeserializationContext;
-import com.google.gson.JsonDeserializer;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParseException;
-import com.google.gson.JsonPrimitive;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Test;
@@ -28,33 +21,10 @@ import org.stjs.server.json.gson.JSDateAdapter;
 import org.stjs.server.json.gson.JSMapAdapter;
 
 public class GsonFactory {
+    private static final FileDeserializer FILE_DESERIALIZER = new FileDeserializer();
 
     private static final Gson GSON_TOSTRING = builder(false).create();
     private static final Gson GSON = builder(false).create();
-    private static final Gson GSON_NOPRETTY = builder(false).create();
-
-    private static final GsonFactory.FileDeserializer FILE_DESERIALIZER = new GsonFactory.FileDeserializer();
-
-    private static final class FileDeserializer implements JsonDeserializer<File> {
-        @Override
-        public File deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context)
-                throws JsonParseException {
-            JsonPrimitive primitive = null;
-            if (json instanceof JsonObject) {
-                primitive = ((JsonObject) json).getAsJsonPrimitive("path");
-            } else if (json instanceof JsonPrimitive) {
-                primitive = (JsonPrimitive) json;
-            }
-            if (primitive != null) {
-                String asString = primitive.getAsString();
-                if (asString != null) {
-                    return new File(asString);
-                }
-            }
-
-            return null;
-        }
-    }
 
     public static <T> T gsonClone(T t) {
         String json = GSON_TOSTRING.toJson(t);
@@ -69,7 +39,6 @@ public class GsonFactory {
         builder.registerTypeAdapter(org.stjs.javascript.Map.class, new JSMapAdapter());
         builder.registerTypeAdapter(org.stjs.javascript.Array.class, new JSArrayAdapter());
         builder.registerTypeAdapter(org.stjs.javascript.Date.class, new JSDateAdapter());
-        builder.setPrettyPrinting();
         if (serializeNulls)
             builder.serializeNulls();
         return builder;
@@ -77,10 +46,6 @@ public class GsonFactory {
 
     public static String toGson(Object src) {
         return GSON.toJson(src);
-    }
-
-    public static String toGsonNoPretty(Object src) {
-        return GSON_NOPRETTY.toJson(src);
     }
 
     public static <T> T fromFile(File file, Class<T> classOf) {
