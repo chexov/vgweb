@@ -2,7 +2,10 @@ package com.vg.web.db;
 
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
+import redis.clients.jedis.ScanParams;
+import redis.clients.jedis.ScanResult;
 import redis.clients.jedis.Transaction;
+import rx.Observable;
 
 import java.util.List;
 import java.util.function.Consumer;
@@ -43,6 +46,38 @@ public abstract class RedisDao {
 
     protected List<Object> withRedisTransaction(Consumer<Transaction> r) {
         return withRedisTransactionOnOk(r, (Runnable) null);
+    }
+
+    public void withRedisTransaction(Consumer<Transaction> r, Runnable onOk) {
+        Jedis redis = getRedis();
+        Transaction transaction = null;
+        try {
+            transaction = redis.multi();
+            r.accept(transaction);
+            transaction.exec();
+            transaction = null;
+            if (onOk != null) {
+                onOk.run();
+            }
+        } finally {
+            rollback(transaction);
+            redis.close();
+        }
+    }
+
+    public static Observable<List<String>> scanKeys(Jedis r, String pattern) {
+        Observable<List<String>> scanKeys = Observable.create(o -> {
+            String cursor = "0";
+            do {
+                ScanParams params = new ScanParams().match(pattern);
+                ScanResult<String> scan = r.scan(cursor, params);
+                cursor = scan.getStringCursor();
+                List<String> keys = scan.getResult();
+                o.onNext(keys);
+            } while (!"0".equals(cursor) && !o.isUnsubscribed());
+            o.onCompleted();
+        });
+        return scanKeys.onBackpressureBuffer();
     }
 
     protected List<Object> withRedisTransaction(Jedis redis, Consumer<Transaction> tx) {
