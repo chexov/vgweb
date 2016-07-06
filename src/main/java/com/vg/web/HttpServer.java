@@ -91,11 +91,12 @@ public class HttpServer {
 
         requestLogHandler = new RequestLogHandler();
         handlers.setHandlers(new Handler[]{contexts, new DefaultHandler(), requestLogHandler});
-        jetty.setHandler(handlers);
 
-        context = new ServletContextHandler(contexts, "/", true, false);
-        sessionManager = initSessionManager();
-        context.getSessionHandler().setSessionManager(sessionManager);
+        GzipHandler gzipHandler = new GzipHandler();
+        gzipHandler.setIncludedMimeTypes("text/html", "text/plain", "text/xml", "text/css",
+                "application/javascript", "text/javascript");
+        gzipHandler.setHandler(handlers);
+        jetty.setHandler(gzipHandler);
     }
 
     static String[] allCipherSuites() {
