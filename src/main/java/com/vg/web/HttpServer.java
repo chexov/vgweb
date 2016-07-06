@@ -78,6 +78,11 @@ public class HttpServer {
         jetty = new Server(threadPool);
         initHTTP(port);
         initHandlers();
+    public VirtualHost createVirtualHost(String[] domains) {
+        ServletContextHandler handler = new ServletContextHandler(contexts, "/", true, false);
+        handler.setVirtualHosts(domains);
+        handler.getSessionHandler().setSessionManager(getSessionManager());
+        return new VirtualHost(handler);
     }
 
     private void initHandlers() {
