@@ -1,5 +1,18 @@
 package com.vg.web;
 
+import static org.apache.commons.lang.StringUtils.isNotBlank;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocketFactory;
+import javax.servlet.Filter;
+import javax.servlet.http.HttpServlet;
+import java.io.File;
+import java.io.IOException;
+import java.security.NoSuchAlgorithmException;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
+
 import com.vg.web.socket.PrefixWebSocketServlet;
 import com.vg.web.view.JsonView;
 import com.vg.web.view.View;
@@ -9,48 +22,40 @@ import org.eclipse.jetty.alpn.server.ALPNServerConnectionFactory;
 import org.eclipse.jetty.http.HttpVersion;
 import org.eclipse.jetty.http2.server.HTTP2CServerConnectionFactory;
 import org.eclipse.jetty.http2.server.HTTP2ServerConnectionFactory;
-import org.eclipse.jetty.io.ByteBufferPool;
-import org.eclipse.jetty.server.*;
+import org.eclipse.jetty.server.ForwardedRequestCustomizer;
+import org.eclipse.jetty.server.Handler;
+import org.eclipse.jetty.server.HttpConfiguration;
+import org.eclipse.jetty.server.HttpConnectionFactory;
+import org.eclipse.jetty.server.NCSARequestLog;
+import org.eclipse.jetty.server.NegotiatingServerConnectionFactory;
+import org.eclipse.jetty.server.SecureRequestCustomizer;
+import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.server.ServerConnector;
+import org.eclipse.jetty.server.SslConnectionFactory;
 import org.eclipse.jetty.server.handler.ContextHandlerCollection;
 import org.eclipse.jetty.server.handler.DefaultHandler;
 import org.eclipse.jetty.server.handler.HandlerCollection;
 import org.eclipse.jetty.server.handler.RequestLogHandler;
+import org.eclipse.jetty.server.handler.gzip.GzipHandler;
 import org.eclipse.jetty.server.session.HashSessionManager;
 import org.eclipse.jetty.servlet.FilterHolder;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
-import org.eclipse.jetty.util.annotation.Name;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
-import org.eclipse.jetty.util.thread.Scheduler;
-
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSocketFactory;
-import javax.servlet.Filter;
-import javax.servlet.http.HttpServlet;
-import javax.swing.plaf.SliderUI;
-
-import java.io.File;
-import java.io.IOException;
-import java.security.NoSuchAlgorithmException;
-import java.util.Map;
-import java.util.concurrent.Executor;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
-
-import static org.apache.commons.lang.StringUtils.isNotBlank;
 
 public class HttpServer {
-    public HashSessionManager sessionManager;
+    protected HashSessionManager sessionManager;
     protected Server jetty;
-    protected ServletContextHandler context;
     private RequestLogHandler requestLogHandler;
     private String accessLogPath;
     private HttpConfiguration http_config;
     File sessionsDir;
     private int acceptors;
     private int selectors;
+    private ContextHandlerCollection contexts;
+    protected VirtualHost defaultHost;
 
     public static void debugJetty() {
         System.setProperty("org.eclipse.jetty.LEVEL", "DEBUG");
@@ -78,19 +83,32 @@ public class HttpServer {
         jetty = new Server(threadPool);
         initHTTP(port);
         initHandlers();
+        initSessionManager();
+    }
+
+    public VirtualHost createVirtualHost(String[] domains) {
+        ServletContextHandler handler = new ServletContextHandler(contexts, "/", true, false);
+        handler.setVirtualHosts(domains);
+        handler.getSessionHandler().setSessionManager(getSessionManager());
+        return new VirtualHost(handler);
     }
 
     private void initHandlers() {
-        HandlerCollection handlers = new HandlerCollection();
-        ContextHandlerCollection contexts = new ContextHandlerCollection();
+        contexts = new ContextHandlerCollection();
+        defaultHandlers();
+        defaultHost = createVirtualHost(null);
+    }
 
+    private void defaultHandlers() {
+        HandlerCollection handlers = new HandlerCollection();
         requestLogHandler = new RequestLogHandler();
         handlers.setHandlers(new Handler[]{contexts, new DefaultHandler(), requestLogHandler});
-        jetty.setHandler(handlers);
 
-        context = new ServletContextHandler(contexts, "/", true, false);
-        sessionManager = initSessionManager();
-        context.getSessionHandler().setSessionManager(sessionManager);
+        GzipHandler gzipHandler = new GzipHandler();
+        gzipHandler.setIncludedMimeTypes("text/html", "text/plain", "text/xml", "text/css",
+                "application/javascript", "text/javascript");
+        gzipHandler.setHandler(handlers);
+        jetty.setHandler(gzipHandler);
     }
 
     static String[] allCipherSuites() {
@@ -163,28 +181,21 @@ public class HttpServer {
 
     }
 
-    private HashSessionManager initSessionManager() {
+    private void initSessionManager() {
         sessionsDir.mkdirs();
 
         try {
-            HashSessionManager hsm = new HashSessionManager();
-            hsm.setDeleteUnrestorableSessions(true);
-            hsm.setStoreDirectory(sessionsDir);
-            hsm.setSavePeriod(30);
-            hsm.setMaxInactiveInterval((int) TimeUnit.DAYS.toSeconds(30));
-            return hsm;
+            sessionManager = new HashSessionManager();
+            sessionManager.setDeleteUnrestorableSessions(true);
+            sessionManager.setStoreDirectory(sessionsDir);
+            sessionManager.setSavePeriod(30);
+            sessionManager.setMaxInactiveInterval((int) TimeUnit.DAYS.toSeconds(30));
+            sessionManager.setLazyLoad(true);
         } catch (IOException e) {
             e.printStackTrace();
             throw new RuntimeException(e);
         }
     }
-
-    //    public void enableCleartextSPDY(int port, ServerSessionFrameListener listener) {
-    //        ServerConnector spdy3 = new ServerConnector(jetty, (SslContextFactory) null,
-    //                new SPDYServerConnectionFactory(SPDY.V3, listener), new HttpConnectionFactory());
-    //        spdy3.setPort(port);
-    //        jetty.addConnector(spdy3);
-    //    }
 
     //e.g. ./logs/jetty-yyyy_mm_dd.request.log
     public void setAccessLogPath(String accessLogPath) {
@@ -212,7 +223,7 @@ public class HttpServer {
     }
 
     public void add(String path, HttpServlet servlet) {
-        context.addServlet(new ServletHolder(servlet), path);
+        defaultHost.context.addServlet(new ServletHolder(servlet), path);
     }
 
     public void add(PrefixWebSocketServlet webSocketController) {
@@ -225,7 +236,7 @@ public class HttpServer {
                 return servlet.get(request, pathInfo);
             }
         };
-        context.addServlet(new ServletHolder(controller), path);
+        defaultHost.context.addServlet(new ServletHolder(controller), path);
     }
 
     public <R> void addGetJson(String path, Function<StrParser, R> p) {
@@ -234,7 +245,7 @@ public class HttpServer {
                 return new JsonView(p.apply(pathInfo));
             }
         };
-        context.addServlet(new ServletHolder(controller), path);
+        defaultHost.context.addServlet(new ServletHolder(controller), path);
     }
 
     public void addFilter(String path, Filter filter) {
@@ -246,7 +257,7 @@ public class HttpServer {
         if (initParameters != null) {
             holder.setInitParameters(initParameters);
         }
-        context.addFilter(holder, path, null);
+        defaultHost.context.addFilter(holder, path, null);
     }
 
     public HashSessionManager getSessionManager() {
