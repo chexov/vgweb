@@ -20,22 +20,26 @@ import org.junit.Test;
 
 public class GsonHelper {
 
-    private Gson GSON_TOSTRING;
+    private Gson GSON_PRETTY;
     private Gson GSON;
 
-    public GsonHelper(Gson pretty, Gson ugly) {
-        this.GSON = pretty;
-        this.GSON_TOSTRING = ugly;
+    public GsonHelper(Gson pretty, Gson compact) {
+        this.GSON_PRETTY = pretty;
+        this.GSON = compact;
     }
 
     public <T> T gsonClone(T t) {
-        String json = GSON_TOSTRING.toJson(t);
-        T fromJson = (T) GSON_TOSTRING.fromJson(json, t.getClass());
+        String json = GSON.toJson(t);
+        T fromJson = (T) GSON.fromJson(json, t.getClass());
         return fromJson;
     }
 
     public String toGson(Object src) {
         return GSON.toJson(src);
+    }
+
+    public String toGsonPretty(Object src) {
+        return GSON_PRETTY.toJson(src);
     }
 
     public <T> T fromFile(File file, Class<T> classOf) {
@@ -92,7 +96,7 @@ public class GsonHelper {
     }
 
     public String gsonToString(Object o) {
-        return GSON_TOSTRING.toJson(o);
+        return GSON.toJson(o);
     }
 
     public <T> T fromRequest(HttpServletRequest request, Class<T> typeOfT) throws Exception {
