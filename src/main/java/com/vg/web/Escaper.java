@@ -1,9 +1,10 @@
 package com.vg.web;
 
-import org.apache.commons.lang.StringEscapeUtils;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+
+import org.apache.commons.lang3.StringEscapeUtils;
 
 public class Escaper {
     public static String url(String url) throws UnsupportedEncodingException {
@@ -11,10 +12,10 @@ public class Escaper {
     }
 
     public static String html(String html) {
-        return StringEscapeUtils.escapeHtml(html);
+        return StringEscapeUtils.escapeHtml4(html);
     }
 
     public static String js(String js) {
-        return StringEscapeUtils.escapeJavaScript(js);
+        return StringEscapeUtils.escapeEcmaScript(js);
     }
 }

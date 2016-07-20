@@ -1,7 +1,6 @@
 import com.vg.web.Controller;
 import com.vg.web.HttpServer;
 import com.vg.web.StrParser;
-import com.vg.web.VelocityConfigurator;
 import com.vg.web.db.BaseJsonRedisDao;
 import com.vg.web.socket.PrefixWebSocketServlet;
 import com.vg.web.view.ClassPathView;
@@ -23,10 +22,6 @@ import static redis.clients.jedis.Protocol.DEFAULT_TIMEOUT;
 
 public class ExampleWebServerMain {
     public static final String PIVO = "\uD83C\uDF7A";
-
-    static {
-        VelocityConfigurator.configure(new File("."), "vms/");
-    }
 
     private Config config;
     private HttpServer s;

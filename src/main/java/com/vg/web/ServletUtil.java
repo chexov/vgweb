@@ -1,6 +1,6 @@
 package com.vg.web;
 
-import static org.apache.commons.lang.StringUtils.defaultString;
+import static org.apache.commons.lang3.StringUtils.defaultString;
 
 import java.io.File;
 

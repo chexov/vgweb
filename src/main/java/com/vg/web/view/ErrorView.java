@@ -1,19 +1,17 @@
 package com.vg.web.view;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.Writer;
+import static com.vg.web.view.CachedFileView.isNotModified;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-
-import org.apache.velocity.Template;
-import org.apache.velocity.VelocityContext;
-import org.apache.velocity.app.Velocity;
-import org.eclipse.jetty.io.EofException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
+import java.net.URLConnection;
 
 import com.google.common.collect.ImmutableMap;
+import com.vg.web.MimeTypes;
+import org.apache.commons.io.IOUtils;
 
 public class ErrorView implements View {
 
@@ -61,25 +59,11 @@ public class ErrorView implements View {
             response.setCharacterEncoding(UTF_8);
 
             if (this.httpResponse == 403) {
-                VelocityContext ctx = new VelocityContext();
-
-                final OutputStream output = response.getOutputStream();
-                final Writer writer = new OutputStreamWriter(output);
-                final Template template = Velocity.getTemplate("403.vm");
-                merge(ctx, writer, template);
+                merge("403.vm", request, response);
             } else if (this.httpResponse == 415) {
-                VelocityContext ctx = new VelocityContext();
-
-                final OutputStream output = response.getOutputStream();
-                final Writer writer = new OutputStreamWriter(output);
-                final Template template = Velocity.getTemplate("415.vm");
-                merge(ctx, writer, template);
+                merge("415.vm", request, response);
             } else if (this.httpResponse == 404) {
-                VelocityContext ctx = new VelocityContext();
-                final OutputStream output = response.getOutputStream();
-                final Writer writer = new OutputStreamWriter(output);
-                final Template template = Velocity.getTemplate("404.vm");
-                merge(ctx, writer, template);
+                merge("404.vm", request, response);
             } else {
                 if (null != contentType)
                     response.setContentType(contentType);
@@ -90,12 +74,31 @@ public class ErrorView implements View {
         }
     }
 
-    private void merge(VelocityContext ctx, Writer writer, Template template) throws IOException {
+    private void merge(String resource, HttpServletRequest request, HttpServletResponse response) throws IOException {
+        InputStream is = null;
+        String mime = MimeTypes.INSTANCE.getByExtension(resource);
         try {
-            template.merge(ctx, writer);
-            writer.flush();
-        } catch (final EofException e) {
-            //            log.warn("Browser window closed before page were ready for view.");
+            ClassLoader classLoader = this.getClass().getClassLoader();
+            URL resource2 = classLoader.getResource(resource);
+            if (resource2 == null) {
+                response.sendError(404);
+                return;
+            }
+            URLConnection openConnection = resource2.openConnection();
+            long mtime = openConnection.getLastModified();
+            if (isNotModified(request, mtime)) {
+                response.sendError(304);
+                return;
+            }
+            int contentLength = openConnection.getContentLength();
+            response.setContentLength(contentLength);
+            response.setContentType(mime);
+            is = openConnection.getInputStream();
+            response.setDateHeader("Last-Modified", mtime);
+            response.addHeader("Cache-Control", "public,");
+            IOUtils.copy(is, response.getOutputStream());
+        } finally {
+            IOUtils.closeQuietly(is);
         }
     }
 

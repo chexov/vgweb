@@ -5,7 +5,7 @@
 
 	<groupId>com.vg</groupId>
 	<artifactId>vgweb</artifactId>
-	<version>1.3.14</version>
+	<version>1.4.0</version>
 	<properties>
 		<jetty.version>9.3.10.v20160621</jetty.version>
 	</properties>
@@ -29,15 +29,6 @@
 			<url>https://oss.sonatype.org/content/repositories/jetty-releases</url>
 		</repository>
 	</repositories>
-	<distributionManagement>
-		<repository>
-			<uniqueVersion>false</uniqueVersion>
-			<id>DropboxM2</id>
-			<name>Corporate Repository</name>
-			<url>file://${user.home}/Dropbox/m2/repository</url>
-			<layout>default</layout>
-		</repository>
-	</distributionManagement>
 
 	<build>
 		<plugins>
@@ -88,11 +79,6 @@
 			<groupId>org.eclipse.jetty.http2</groupId>
 			<artifactId>http2-server</artifactId>
 			<version>${jetty.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.velocity</groupId>
-			<artifactId>velocity</artifactId>
-			<version>1.7</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.commons</groupId>
