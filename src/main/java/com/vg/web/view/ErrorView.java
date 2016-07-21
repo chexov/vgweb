@@ -9,7 +9,6 @@ import com.google.common.collect.ImmutableMap;
 
 public class ErrorView implements View {
 
-    //    public final static Logger log = LogManager.getLogger(ErrorView.class);
     public static final ErrorView OK = new ErrorView(200);
     public static ErrorView NotModified = new ErrorView(304);
 
@@ -22,6 +21,7 @@ public class ErrorView implements View {
     public final static ErrorView Forbidden = new ErrorView(403);
     public final static ErrorView Unsupported_Media_Type = new ErrorView(415);
     public final static ErrorView Not_Implemented = new ErrorView(501);
+    public static final ErrorView MethodNotAllowed = new ErrorView(405);
 
     public final static JsonView Error403js = new JsonView(403, ImmutableMap.of("error", "no access"));
     public final static JsonView Error417js = new JsonView(417, ImmutableMap.of("error", "permisson violation"));
