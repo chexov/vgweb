@@ -1,5 +1,6 @@
 package com.vg.web;
 
+import com.vg.web.view.ErrorView;
 import com.vg.web.view.View;
 
 import static com.vg.web.StrParser.pathInfoParser;
@@ -20,7 +21,7 @@ public class Controller extends HttpServlet implements Servlet {
     //    private final static Logger log = LogManager.getLogger(Controller.class);
 
     public View get(HttpServletRequest request, StrParser pathInfo) throws Exception {
-        return null;
+        return ErrorView.MethodNotAllowed;
     }
 
     public View post(HttpServletRequest request) throws Exception {
@@ -28,15 +29,15 @@ public class Controller extends HttpServlet implements Servlet {
     }
 
     public View post(HttpServletRequest request, StrParser pathInfo) throws Exception {
-        return null;
+        return ErrorView.MethodNotAllowed;
     }
 
     public View put(HttpServletRequest request, StrParser pathInfo) throws Exception {
-        return null;
+        return ErrorView.MethodNotAllowed;
     }
 
     public View delete(HttpServletRequest request, StrParser pathInfo) throws Exception {
-        return null;
+        return ErrorView.MethodNotAllowed;
     }
 
     @Override
