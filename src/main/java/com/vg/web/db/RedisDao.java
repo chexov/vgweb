@@ -8,8 +8,12 @@ import redis.clients.jedis.Transaction;
 import redis.clients.jedis.Tuple;
 import rx.Observable;
 
+import static java.util.Collections.emptyList;
+
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -137,17 +141,37 @@ public abstract class RedisDao {
         }
     }
 
-    public static List<String> zscanKeys(Jedis r, String k) {
-        List<String> keys = new ArrayList<>();
-        String cursor = "0";
-        do {
-            ScanResult<Tuple> zscan = r.zscan(k, cursor);
-            List<Tuple> result = zscan.getResult();
-            for (Tuple t : result) {
-                keys.add(t.getElement());
-            }
-            cursor = zscan.getStringCursor();
-        } while (!"0".equals(cursor));
-        return keys;
+    public static Observable<List<Entry<String, String>>> hscanKeys(Jedis r, String key) {
+        Observable<List<Entry<String, String>>> scanKeys = Observable.create(o -> {
+            String cursor = "0";
+
+            do {
+                ScanResult<Entry<String, String>> scan = r.hscan(key, cursor);
+                cursor = scan.getStringCursor();
+                List<Entry<String, String>> result = scan.getResult();
+                o.onNext(result);
+            } while (!"0".equals(cursor) && !o.isUnsubscribed());
+            o.onCompleted();
+        });
+        return scanKeys.onBackpressureBuffer();
+    }
+
+    public static Observable<List<Tuple>> zscan(Jedis r, String k) {
+        Observable<List<Tuple>> scanKeys = Observable.create(o -> {
+            String cursor = "0";
+
+            do {
+                ScanResult<Tuple> zscan = r.zscan(k, cursor);
+                cursor = zscan.getStringCursor();
+                List<Tuple> result = zscan.getResult();
+                o.onNext(result);
+            } while (!"0".equals(cursor) && !o.isUnsubscribed());
+            o.onCompleted();
+        });
+        return scanKeys.onBackpressureBuffer();
+    }
+
+    public static Observable<String> zscanElements(Jedis r, String k) {
+        return zscan(r, k).concatMap(list -> Observable.from(list)).map(t -> t.getElement());
     }
 }
