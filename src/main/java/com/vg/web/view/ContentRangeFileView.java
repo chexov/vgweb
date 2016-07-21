@@ -38,7 +38,8 @@ public class ContentRangeFileView implements View {
         try {
             resp.setStatus(SC_PARTIAL_CONTENT);
             resp.setHeader("Content-Range", range.toHeaderValue());
-            resp.setHeader("Content-Length", String.valueOf(range.getContentLength()));
+            //The Content-Length entity-header field indicates the size of the entity-body […] sent to the recipient […]
+            resp.setHeader("Content-Length", String.valueOf(range.getCount()));
             resp.setHeader("Content-Type", MimeTypes.INSTANCE.get(file));
             is = range.limitedInputStream(new SeekableFileInputStream(file));
             // System.out.println(resp);
