@@ -1,17 +1,11 @@
 package com.vg.web.view;
 
-import static com.vg.web.view.CachedFileView.isNotModified;
+import java.io.IOException;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URL;
-import java.net.URLConnection;
 
 import com.google.common.collect.ImmutableMap;
-import com.vg.web.MimeTypes;
-import org.apache.commons.io.IOUtils;
 
 public class ErrorView implements View {
 
@@ -37,12 +31,6 @@ public class ErrorView implements View {
     public static final String UTF_8 = "UTF-8";
 
     private int httpResponse;
-    private String contentType;
-
-    public ErrorView(int httpResponse, String contentType) {
-        this.httpResponse = httpResponse;
-        this.contentType = contentType;
-    }
 
     public ErrorView(int httpResponse) {
         this.httpResponse = httpResponse;
@@ -53,53 +41,7 @@ public class ErrorView implements View {
     }
 
     public void view(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        try {
-            response.setStatus(this.httpResponse);
-            response.setContentType(CONTENT_TYPE_TEXT_HTML);
-            response.setCharacterEncoding(UTF_8);
-
-            if (this.httpResponse == 403) {
-                merge("403.vm", request, response);
-            } else if (this.httpResponse == 415) {
-                merge("415.vm", request, response);
-            } else if (this.httpResponse == 404) {
-                merge("404.vm", request, response);
-            } else {
-                if (null != contentType)
-                    response.setContentType(contentType);
-                response.sendError(httpResponse);
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void merge(String resource, HttpServletRequest request, HttpServletResponse response) throws IOException {
-        InputStream is = null;
-        String mime = MimeTypes.INSTANCE.getByExtension(resource);
-        try {
-            ClassLoader classLoader = this.getClass().getClassLoader();
-            URL resource2 = classLoader.getResource(resource);
-            if (resource2 == null) {
-                response.sendError(404);
-                return;
-            }
-            URLConnection openConnection = resource2.openConnection();
-            long mtime = openConnection.getLastModified();
-            if (isNotModified(request, mtime)) {
-                response.sendError(304);
-                return;
-            }
-            int contentLength = openConnection.getContentLength();
-            response.setContentLength(contentLength);
-            response.setContentType(mime);
-            is = openConnection.getInputStream();
-            response.setDateHeader("Last-Modified", mtime);
-            response.addHeader("Cache-Control", "public,");
-            IOUtils.copy(is, response.getOutputStream());
-        } finally {
-            IOUtils.closeQuietly(is);
-        }
+        response.sendError(httpResponse);
     }
 
     public int getHttpResponse() {

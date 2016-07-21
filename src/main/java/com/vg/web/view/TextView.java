@@ -29,6 +29,7 @@ public class TextView implements View {
         byte[] bytes = text.getBytes("UTF-8");
         response.setContentLength(bytes.length);
         response.setContentType(contentType);
+        response.setCharacterEncoding("UTF-8");
         response.setDateHeader("Last-Modified", mtime);
         response.getOutputStream().write(bytes);
     }
