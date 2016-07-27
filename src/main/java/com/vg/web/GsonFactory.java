@@ -36,6 +36,7 @@ public class GsonFactory {
         GsonBuilder builder = new GsonBuilder();
         builder.registerTypeAdapter(File.class, FILE_DESERIALIZER);
         builder.registerTypeAdapter(Dimension.class, new DimensionSerializer());
+        builder.registerTypeAdapter(Enum.class, new STJSEnumDeserializer());
         builder.registerTypeAdapter(org.stjs.javascript.Map.class, new JSMapAdapter());
         builder.registerTypeAdapter(org.stjs.javascript.Array.class, new JSArrayAdapter());
         builder.registerTypeAdapter(org.stjs.javascript.Date.class, new JSDateAdapter());
