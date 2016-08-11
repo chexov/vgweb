@@ -10,6 +10,7 @@ import com.google.common.collect.ImmutableMap;
 public class ErrorView implements View {
 
     public static final ErrorView OK = new ErrorView(200);
+    public static final ErrorView NoContent = new ErrorView(204);
 
     public static ErrorView NotModified = new ErrorView(304);
 
