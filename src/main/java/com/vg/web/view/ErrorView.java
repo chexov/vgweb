@@ -10,22 +10,22 @@ import com.google.common.collect.ImmutableMap;
 public class ErrorView implements View {
 
     public static final ErrorView OK = new ErrorView(200);
+
     public static ErrorView NotModified = new ErrorView(304);
 
-    public final static ErrorView BAD_REQUEST = new ErrorView(400);
-    public final static ErrorView BadRequest = BAD_REQUEST;
+    public final static ErrorView BadRequest = new ErrorView(400);
     public final static ErrorView Unauthorized = new ErrorView(401);
-
     public final static ErrorView NotFound = new ErrorView(404);
     public final static ErrorView Conflict = new ErrorView(409);
     public final static ErrorView Forbidden = new ErrorView(403);
-    public final static ErrorView Unsupported_Media_Type = new ErrorView(415);
-    public final static ErrorView Not_Implemented = new ErrorView(501);
-    public static final ErrorView MethodNotAllowed = new ErrorView(405);
-
+    public final static ErrorView UnsupportedMediaType = new ErrorView(415);
     public final static JsonView Error403js = new JsonView(403, ImmutableMap.of("error", "no access"));
     public final static JsonView Error417js = new JsonView(417, ImmutableMap.of("error", "permisson violation"));
     public final static JsonView Error404js = new JsonView(404, ImmutableMap.of("error", "not found"));
+    public static final ErrorView MethodNotAllowed = new ErrorView(405);
+
+    public final static ErrorView NotImplemented = new ErrorView(501);
+
 
     public static final String CONTENT_TYPE_TEXT_HTML = "text/html";
     public static final String UTF_8 = "UTF-8";
@@ -65,4 +65,5 @@ public class ErrorView implements View {
     public String toString() {
         return "ErrorView(" + getHttpResponse() + ")";
     }
+
 }
