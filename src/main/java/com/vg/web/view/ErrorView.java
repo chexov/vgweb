@@ -1,18 +1,17 @@
 package com.vg.web.view;
 
-import java.io.IOException;
+import com.google.common.collect.ImmutableMap;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-
-import com.google.common.collect.ImmutableMap;
+import java.io.IOException;
 
 public class ErrorView implements View {
 
-    public static final ErrorView OK = new ErrorView(200);
-    public static final ErrorView NoContent = new ErrorView(204);
+    public final static ErrorView OK = new ErrorView(200);
+    public final static ErrorView NoContent = new ErrorView(204);
 
-    public static ErrorView NotModified = new ErrorView(304);
+    public final static ErrorView NotModified = new ErrorView(304);
 
     public final static ErrorView BadRequest = new ErrorView(400);
     public final static ErrorView Unauthorized = new ErrorView(401);
@@ -23,7 +22,7 @@ public class ErrorView implements View {
     public final static JsonView Error403js = new JsonView(403, ImmutableMap.of("error", "no access"));
     public final static JsonView Error417js = new JsonView(417, ImmutableMap.of("error", "permisson violation"));
     public final static JsonView Error404js = new JsonView(404, ImmutableMap.of("error", "not found"));
-    public static final ErrorView MethodNotAllowed = new ErrorView(405);
+    public final static ErrorView MethodNotAllowed = new ErrorView(405);
 
     public final static ErrorView NotImplemented = new ErrorView(501);
 
