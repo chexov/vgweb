@@ -23,6 +23,8 @@ import com.vg.web.socket.PubSubUpdateListener;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.Transaction;
+import rx.Subscription;
+import rx.subscriptions.Subscriptions;
 
 public class BaseJsonRedisDao<T> extends RedisDao {
 
@@ -278,9 +280,14 @@ public class BaseJsonRedisDao<T> extends RedisDao {
         this.pubSub.unsubscribe(mainListener);
     }
 
-    public void subscribe(String videoId, PubSubUpdateListener listener) {
+    public Subscription subscribe(String videoId, PubSubUpdateListener listener) {
         synchronized (listeners) {
             listeners.put(videoId, listener);
+            return Subscriptions.create(() -> {
+                synchronized (listeners) {
+                    listeners.remove(videoId, listener);
+                }
+            });
         }
     }
 
@@ -294,8 +301,9 @@ public class BaseJsonRedisDao<T> extends RedisDao {
         pubSub.publish(message);
     }
 
-    public void subscribe(PubSubUpdateListener listener) {
+    public Subscription subscribe(PubSubUpdateListener listener) {
         allMessagesListeners.add(listener);
+        return Subscriptions.create(() -> allMessagesListeners.remove(listener));
     }
 
     public void unsubscribe(PubSubUpdateListener listener) {
