@@ -23,6 +23,7 @@ import com.vg.web.socket.PubSubUpdateListener;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.Transaction;
+import rx.Observable;
 import rx.Subscription;
 import rx.subscriptions.Subscriptions;
 
@@ -318,4 +319,13 @@ public class BaseJsonRedisDao<T> extends RedisDao {
             }
         });
     }
+    
+    public Observable<String> listIds() {
+        return withRedisRx(r -> zscanElements(r, kMtime));
+    }
+    
+    public Observable<String> updates() {
+        return Observable.create(o -> o.add(subscribe(id -> o.onNext(id))));
+    }
+
 }

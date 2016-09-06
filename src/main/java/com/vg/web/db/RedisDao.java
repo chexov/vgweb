@@ -9,6 +9,7 @@ import redis.clients.jedis.Tuple;
 import rx.Observable;
 
 import static java.util.Collections.emptyList;
+import static rx.Observable.using;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -35,6 +36,10 @@ public abstract class RedisDao {
         } finally {
             redis.close();
         }
+    }
+    
+    protected <T> Observable<T> withRedisRx(Function<Jedis, Observable<T>> factory) {
+        return using(this::getRedis, factory::apply, Jedis::close, true);
     }
 
     protected void updateRedis(Consumer<Jedis> r) {
