@@ -11,10 +11,6 @@
 	</properties>
 	<repositories>
 		<repository>
-			<id>DropboxM2</id>
-			<url>file://${user.home}/Dropbox/m2/repository</url>
-		</repository>
-		<repository>
 			<id>central</id>
 			<name>Maven Repository Switchboard</name>
 			<layout>default</layout>
