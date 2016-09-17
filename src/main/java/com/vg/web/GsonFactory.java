@@ -17,7 +17,6 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Test;
 import org.stjs.server.json.gson.JSArrayAdapter;
-import org.stjs.server.json.gson.JSDateAdapter;
 import org.stjs.server.json.gson.JSMapAdapter;
 
 public class GsonFactory {
