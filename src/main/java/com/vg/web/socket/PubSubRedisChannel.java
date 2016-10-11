@@ -1,28 +1,16 @@
 package com.vg.web.socket;
 
-import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
-
-import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-
 import com.vg.web.db.RedisDao;
-import com.vg.web.util.Async;
-import com.vg.web.util.DaemonThreadFactory;
 
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPubSub;
+import rx.Observable;
+import rx.subscriptions.Subscriptions;
 
 public class PubSubRedisChannel extends RedisDao {
-    //    public static final Logger log = LogManager.getLogger(PubSubRedisChannel.class);
     private final long redisDb;
     private final String channelId;
-    private Runnable redisListener = Async.ex(new PubSubUpdatedChannel());
-    private ScheduledExecutorService pubsubThread;
-    private Future<?> pubsubJob;
 
     public PubSubRedisChannel(JedisPool pool, String channelId) {
         super(pool);
@@ -30,46 +18,49 @@ public class PubSubRedisChannel extends RedisDao {
         this.redisDb = getDb();
     }
 
-    private final List<PubSubUpdateListener> listeners = new CopyOnWriteArrayList<>();
-
-    private class PubSubUpdatedChannel extends JedisPubSub implements Runnable {
-        @Override
-        public void run() {
-            try {
-                try (Jedis r = pool.getResource()) {
-                    r.subscribe(this, kChannel());
-                }
-            } catch (Throwable t) {
-                t.printStackTrace();
-            }
-        }
-
-        @Override
-        public void onMessage(String channel, String message) {
-            for (PubSubUpdateListener listener : listeners) {
-                listener.accept(message);
-            }
-        }
-    }
-
     private String kChannel() {
         return redisDb + "/" + channelId;
     }
 
-    public void subscribe(PubSubUpdateListener listener) {
-        listeners.add(listener);
-
-        synchronized (this) {
-            if (pubsubThread == null) {
-                pubsubThread = newSingleThreadScheduledExecutor(new DaemonThreadFactory(
-                        PubSubRedisChannel.class.getSimpleName()));
-                pubsubJob = pubsubThread.scheduleWithFixedDelay(redisListener, 0, 1000, TimeUnit.MILLISECONDS);
-            }
-        }
+    private static void debug(String string) {
+        //System.out.println(Thread.currentThread().getName() + " " + string);
     }
 
-    public void unsubscribe(PubSubUpdateListener listener) {
-        listeners.remove(listener);
+    public Observable<String> messages() {
+        String channel = kChannel();
+        return Observable.create(o -> {
+            debug("JedisPool.getResource");
+            Jedis r = pool.getResource();
+            debug("JedisPool.getResource ok");
+            try {
+                JedisPubSub jedisPubSub = new JedisPubSub() {
+                    @Override
+                    public void onMessage(String ch, String message) {
+                        o.onNext(message);
+                    }
+                };
+                o.add(Subscriptions.create(() -> {
+                    debug("unsubscribe " + channel);
+                    try {
+                        jedisPubSub.unsubscribe();
+                        debug("unsubscribed " + channel);
+                    } catch (Exception e) {
+                        if (e instanceof InterruptedException) {
+                            Thread.currentThread().interrupt();
+                        }
+                        System.err.println(e);
+                    }
+                }));
+
+                debug("subscribe " + channel);
+                r.subscribe(jedisPubSub, channel);
+                debug("subscribe " + channel + " end");
+            } finally {
+                debug("Jedis.close");
+                r.close();
+                debug("Jedis.closed");
+            }
+        });
     }
 
     public void publish(String message) {
