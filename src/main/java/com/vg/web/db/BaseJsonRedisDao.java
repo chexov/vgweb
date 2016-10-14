@@ -282,14 +282,9 @@ public class BaseJsonRedisDao<T> extends RedisDao {
     private Subscription subscription;
 
     public void startPubSub() {
-        subscription = pubSub
-                .messages()
-                .subscribeOn(newThread())
-                .timeout(30, SECONDS)
-                .retryWhen(delay(1, SECONDS).build())
-                .subscribe(msg -> {
-                    mainListener.accept(msg);
-                });
+        subscription = pubSub.messagesOnNewThread().subscribe(msg -> {
+            mainListener.accept(msg);
+        });
     }
 
     public void stop() {

@@ -1,5 +1,9 @@
 package com.vg.web.socket;
 
+import static com.github.davidmoten.rx.RetryWhen.delay;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static rx.schedulers.Schedulers.newThread;
+
 import com.vg.web.db.RedisDao;
 
 import redis.clients.jedis.Jedis;
@@ -62,6 +66,15 @@ public class PubSubRedisChannel extends RedisDao {
             }
         });
     }
+    
+    public Observable<String> messagesOnNewThread() {
+        return messages()
+                .subscribeOn(newThread())
+                .timeout(30, SECONDS)
+                .retryWhen(delay(1, SECONDS).build())
+                .onBackpressureBuffer();
+    }
+    
 
     public void publish(String message) {
         withRedis(r -> r.publish(kChannel(), message));
