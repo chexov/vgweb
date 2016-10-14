@@ -40,6 +40,7 @@ public class PubSubRedisChannel extends RedisDao {
                 JedisPubSub jedisPubSub = new JedisPubSub() {
                     @Override
                     public void onMessage(String ch, String message) {
+                        debug("message "+message);
                         o.onNext(message);
                     }
                 };
@@ -77,6 +78,7 @@ public class PubSubRedisChannel extends RedisDao {
     
 
     public void publish(String message) {
+        debug("publish "+kChannel()+" "+message);
         withRedis(r -> r.publish(kChannel(), message));
     }
 
