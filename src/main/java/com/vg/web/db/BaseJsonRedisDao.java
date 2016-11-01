@@ -245,7 +245,13 @@ public class BaseJsonRedisDao<T> extends RedisDao {
 
     protected void _update(Transaction tx, String id, T item) {
         String gsonToString = gsonToString(item);
-        tx.hset(kHash(id), fJson(getRevision(item) + 1), gsonToString);
+        long rev = getRevision(item);
+        String _fJsonR0 = fJson(rev);
+        String _fJsonR1 = fJson(rev + 1);
+        tx.hset(kHash(id), _fJsonR1, gsonToString);
+        if (!_fJsonR0.equals(_fJsonR1)) {
+            tx.hdel(kHash(id), _fJsonR0);
+        }
     }
 
     public boolean contains(String id) {

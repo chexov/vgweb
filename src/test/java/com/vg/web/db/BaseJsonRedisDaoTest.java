@@ -14,6 +14,10 @@ import java.util.concurrent.Future;
 import com.google.common.collect.ImmutableMap;
 import com.vg.web.GsonFactory;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
+import org.junit.After;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import redis.clients.jedis.Jedis;
@@ -31,9 +35,23 @@ public class BaseJsonRedisDaoTest {
         return pc;
     }
 
+    private JedisPool pool;
+    
+    @Before
+    public void setup() {
+        this.pool = new JedisPool(poolConfig(), "localhost", DEFAULT_PORT, DEFAULT_TIMEOUT, null, 4);
+        try (Jedis r = pool.getResource()) {
+            r.flushDB();
+        }
+    }
+    
+    @After
+    public void teardown() {
+        pool.close();
+    }
+    
     @Test
     public void testCreateGet() throws Exception {
-        JedisPool pool = new JedisPool(poolConfig(), "localhost", DEFAULT_PORT, DEFAULT_TIMEOUT, null, 4);
         BaseJsonRedisDao<Dimension> dao = new BaseJsonRedisDao<>(pool, "test", Dimension.class);
         String id1 = dao.create(new Dimension(42, 43));
         String id2 = dao.create(new Dimension(142, 143));
@@ -59,7 +77,6 @@ public class BaseJsonRedisDaoTest {
 
     @Test
     public void testRevisions() throws Exception {
-        JedisPool pool = new JedisPool(poolConfig(), "localhost", DEFAULT_PORT, DEFAULT_TIMEOUT, null, 4);
         BaseJsonRedisDao<Task> dao = new BaseJsonRedisDao<>(pool, "task", Task.class);
         String id = dao.create(new Task());
         Task task = dao.get(id);
@@ -98,7 +115,6 @@ public class BaseJsonRedisDaoTest {
 
     @Test
     public void testWatch() throws Exception {
-        JedisPool pool = new JedisPool(poolConfig(), "localhost", DEFAULT_PORT, DEFAULT_TIMEOUT, null, 4);
         Jedis j1 = pool.getResource();
         Jedis j2 = pool.getResource();
 
