@@ -103,14 +103,14 @@ public class BaseJsonRedisDao<T> extends RedisDao {
 
     protected T _get(Jedis r, String id) {
         try {
-            if (isNotBlank(id)) {
+            if (_contains(r, id)) {
                 T item = null;
                 long rev = 0;
                 do {
                 rev = _dbRev(r, id);
                 String hget = r.hget(kHash(id), fJson(rev));
                 item = fromJson(hget, _class);
-                } while(rev != 0 && item == null);
+                } while(item == null && _contains(r, id));
                 setRevision(item, rev);
                 return item;
             }

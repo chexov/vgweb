@@ -139,4 +139,18 @@ public class BaseJsonRedisDaoTest {
         System.out.println(t2.exec());
     }
 
+    @Test
+    public void testCreateRev() throws Exception {
+        BaseJsonRedisDao<Task> dao = new BaseJsonRedisDao<>(pool, "task", Task.class);
+        Task t = new Task();
+        t.message = "msg";
+        t.counter = 42;
+        String id = dao.create(t);
+        Task task = dao.get(id);
+        assertEquals(0, task._rev);
+        task.message = "msg2";
+        dao.update(id, task);
+        Task task1 = dao.get(id);
+        assertEquals(1, task1._rev);
+    }
 }

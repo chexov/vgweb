@@ -5,7 +5,7 @@
 
 	<groupId>com.vg</groupId>
 	<artifactId>vgweb</artifactId>
-	<version>1.5.8</version>
+	<version>1.5.9</version>
 	<properties>
 		<jetty.version>9.3.10.v20160621</jetty.version>
 	</properties>
