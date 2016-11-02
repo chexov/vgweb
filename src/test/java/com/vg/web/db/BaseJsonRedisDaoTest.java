@@ -16,6 +16,7 @@ import com.vg.web.GsonFactory;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.junit.After;
 import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -48,6 +49,12 @@ public class BaseJsonRedisDaoTest {
     @After
     public void teardown() {
         pool.close();
+    }
+    
+    @Test
+    public void testReturnNullOnGet() throws Exception {
+        BaseJsonRedisDao<Task> dao = new BaseJsonRedisDao<>(pool, "task", Task.class);
+        Assert.assertNull(dao.get("bla"));
     }
     
     @Test
