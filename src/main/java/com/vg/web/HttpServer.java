@@ -84,7 +84,7 @@ public class HttpServer {
         jetty = new Server(threadPool);
         initHTTP(port);
         initHandlers();
-        initSessionManager();
+        sessionManager = new HashSessionManager();
     }
 
     public VirtualHost createVirtualHost(String[] domains) {
@@ -186,7 +186,7 @@ public class HttpServer {
         sessionsDir.mkdirs();
 
         try {
-            HashSessionManager hsm = new HashSessionManager();
+            HashSessionManager hsm = (HashSessionManager) sessionManager;
             hsm.setDeleteUnrestorableSessions(true);
             hsm.setStoreDirectory(sessionsDir);
             hsm.setSavePeriod(30);
@@ -221,6 +221,7 @@ public class HttpServer {
     }
 
     public void start() throws Exception {
+        initSessionManager();
         jetty.start();
     }
 
