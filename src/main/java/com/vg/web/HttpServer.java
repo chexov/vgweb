@@ -37,6 +37,7 @@ import org.eclipse.jetty.server.handler.DefaultHandler;
 import org.eclipse.jetty.server.handler.HandlerCollection;
 import org.eclipse.jetty.server.handler.RequestLogHandler;
 import org.eclipse.jetty.server.handler.gzip.GzipHandler;
+import org.eclipse.jetty.server.session.AbstractSessionManager;
 import org.eclipse.jetty.server.session.HashSessionManager;
 import org.eclipse.jetty.servlet.FilterHolder;
 import org.eclipse.jetty.servlet.ServletContextHandler;
@@ -46,7 +47,7 @@ import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
 
 public class HttpServer {
-    protected HashSessionManager sessionManager;
+    protected AbstractSessionManager sessionManager;
     protected Server jetty;
     private RequestLogHandler requestLogHandler;
     private String accessLogPath;
@@ -181,16 +182,17 @@ public class HttpServer {
 
     }
 
-    private void initSessionManager() {
+    protected void initSessionManager() {
         sessionsDir.mkdirs();
 
         try {
-            sessionManager = new HashSessionManager();
-            sessionManager.setDeleteUnrestorableSessions(true);
-            sessionManager.setStoreDirectory(sessionsDir);
-            sessionManager.setSavePeriod(30);
-            sessionManager.setMaxInactiveInterval((int) TimeUnit.DAYS.toSeconds(30));
-            sessionManager.setLazyLoad(true);
+            HashSessionManager hsm = new HashSessionManager();
+            hsm.setDeleteUnrestorableSessions(true);
+            hsm.setStoreDirectory(sessionsDir);
+            hsm.setSavePeriod(30);
+            hsm.setMaxInactiveInterval((int) TimeUnit.DAYS.toSeconds(30));
+            hsm.setLazyLoad(true);
+            this.sessionManager = hsm;
         } catch (IOException e) {
             e.printStackTrace();
             throw new RuntimeException(e);
@@ -260,7 +262,7 @@ public class HttpServer {
         defaultHost.context.addFilter(holder, path, null);
     }
 
-    public HashSessionManager getSessionManager() {
+    public AbstractSessionManager getSessionManager() {
         return this.sessionManager;
     }
 
