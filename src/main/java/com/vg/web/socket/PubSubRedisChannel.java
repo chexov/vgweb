@@ -6,6 +6,7 @@ import static rx.schedulers.Schedulers.newThread;
 
 import com.vg.web.db.RedisDao;
 
+import redis.clients.jedis.BinaryJedisPubSub;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPubSub;
@@ -68,6 +69,43 @@ public class PubSubRedisChannel extends RedisDao {
         });
     }
     
+    public Observable<byte[]> bytemessages() {
+        String channel = kChannel();
+        return Observable.create(o -> {
+            debug("JedisPool.getResource");
+            Jedis r = pool.getResource();
+            debug("JedisPool.getResource ok");
+            try {
+                BinaryJedisPubSub jedisPubSub = new BinaryJedisPubSub() {
+                    @Override
+                    public void onMessage(byte[] channel, byte[] message) {
+                        o.onNext(message);
+                    }
+                };
+                o.add(Subscriptions.create(() -> {
+                    debug("unsubscribe " + channel);
+                    try {
+                        jedisPubSub.unsubscribe();
+                        debug("unsubscribed " + channel);
+                    } catch (Exception e) {
+                        if (e instanceof InterruptedException) {
+                            Thread.currentThread().interrupt();
+                        }
+                        System.err.println(e);
+                    }
+                }));
+
+                debug("subscribe " + channel);
+                r.subscribe(jedisPubSub, channel.getBytes());
+                debug("subscribe " + channel + " end");
+            } finally {
+                debug("Jedis.close");
+                r.close();
+                debug("Jedis.closed");
+            }
+        });
+    }
+    
     public Observable<String> messagesOnNewThread() {
         return messages()
                 .subscribeOn(newThread())
@@ -76,10 +114,14 @@ public class PubSubRedisChannel extends RedisDao {
                 .onBackpressureBuffer();
     }
     
-
     public void publish(String message) {
         debug("publish "+kChannel()+" "+message);
         withRedis(r -> r.publish(kChannel(), message));
     }
+    
+    public void publish(byte[] message) {
+        withRedis(r -> r.publish(kChannel().getBytes(), message));
+    }
+
 
 }
