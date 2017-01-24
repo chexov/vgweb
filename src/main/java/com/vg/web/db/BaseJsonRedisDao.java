@@ -1,24 +1,18 @@
 package com.vg.web.db;
 
-import static com.github.davidmoten.rx.RetryWhen.delay;
 import static com.vg.web.GsonFactory.fromJson;
 import static com.vg.web.GsonFactory.gsonToString;
 import static java.util.UUID.randomUUID;
-import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toList;
-import static org.apache.commons.lang3.StringUtils.isNotBlank;
-import static rx.schedulers.Schedulers.newThread;
 
 import java.lang.reflect.Field;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
-import com.github.davidmoten.rx.RetryWhen;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 import com.vg.web.GsonFactory;
@@ -30,8 +24,6 @@ import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.Transaction;
 import rx.Observable;
 import rx.Subscription;
-import rx.functions.Func1;
-import rx.schedulers.Schedulers;
 import rx.subscriptions.Subscriptions;
 
 public class BaseJsonRedisDao<T> extends RedisDao {
@@ -193,7 +185,7 @@ public class BaseJsonRedisDao<T> extends RedisDao {
             long rev = getRevision(item);
             if (rev == -1) {
                 withRedisTransaction(r, tx -> {
-                    _update(tx, id, item);
+                    _update(tx, id, null, item);
                 });
                 publish(id);
                 return true;
@@ -203,8 +195,9 @@ public class BaseJsonRedisDao<T> extends RedisDao {
             if (dbrev != rev) {
                 return false;
             }
+            T beforeItem = get(id);
             List<Object> result = withRedisTransaction(r, tx -> {
-                _update(tx, id, item);
+                _update(tx, id, beforeItem, item);
                 tx.hincrBy(kHash(id), fRevision, 1);
             });
             if (result != null) {
@@ -243,7 +236,7 @@ public class BaseJsonRedisDao<T> extends RedisDao {
         return defaultValue;
     }
 
-    protected void _update(Transaction tx, String id, T item) {
+    protected void _update(Transaction tx, String id, T beforeItem, T item) {
         String gsonToString = gsonToString(item);
         long rev = getRevision(item);
         String _fJsonR0 = fJson(rev);
