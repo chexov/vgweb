@@ -5,9 +5,9 @@
 
 	<groupId>com.vg</groupId>
 	<artifactId>vgweb</artifactId>
-	<version>1.6.3</version>
+	<version>1.6.4</version>
 	<properties>
-		<jetty.version>9.3.14.v20161028</jetty.version>
+		<jetty.version>9.3.16.v20170120</jetty.version>
 	</properties>
 	<repositories>
 		<repository>

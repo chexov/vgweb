@@ -54,7 +54,7 @@ public class PubSubRedisChannel extends RedisDao {
                         if (e instanceof InterruptedException) {
                             Thread.currentThread().interrupt();
                         }
-                        System.err.println(e);
+                        System.err.println(channelId + ": " + e);
                     }
                 }));
 
