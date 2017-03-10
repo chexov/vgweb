@@ -1,24 +1,25 @@
 package com.vg.web.db;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 import static redis.clients.jedis.Protocol.DEFAULT_PORT;
 import static redis.clients.jedis.Protocol.DEFAULT_TIMEOUT;
 
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+
+import com.vg.web.socket.PubSubUpdateListener;
 
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
@@ -65,6 +66,46 @@ public class BaseJsonRedisDaoTest {
     public void testReturnNullOnGet() throws Exception {
         BaseJsonRedisDao<Task> dao = new BaseJsonRedisDao<>(pool, "task", Task.class);
         Assert.assertNull(dao.get("bla"));
+    }
+    
+    @Test
+    public void testSubscribe() throws Exception {
+        BaseJsonRedisDao<Task> dao = new BaseJsonRedisDao<>(pool, "task", Task.class);
+
+        List<String> fired = new CopyOnWriteArrayList<>();
+        dao.subscribe(x -> fired.add(x));
+        
+        String t1 = dao.create(new Task());
+        String t2 = dao.create(new Task());
+        Thread.sleep(100);
+        assertArrayEquals(new String[] { t1, t2 }, fired.toArray(new String[0]));
+
+        MutableInt t1fired = new MutableInt();
+        MutableInt t2fired = new MutableInt();
+        PubSubUpdateListener listener1 = x -> t1fired.increment();
+        PubSubUpdateListener listener2 = x -> t2fired.increment();
+        dao.subscribe(t1, listener1);
+        dao.subscribe(t2, listener2);
+
+        assertEquals(0, t1fired.intValue());
+        assertEquals(0, t2fired.intValue());
+        
+        dao.update(t1, t -> t.counter++);
+        dao.update(t2, t -> t.counter++);
+        Thread.sleep(100);
+
+        assertEquals(1, t1fired.intValue());
+        assertEquals(1, t2fired.intValue());
+        
+        dao.unsubscribe(t1, listener1);
+
+        dao.update(t1, t -> t.counter++);
+        dao.update(t2, t -> t.counter++);
+        Thread.sleep(100);
+
+        assertEquals(1, t1fired.intValue());
+        assertEquals(2, t2fired.intValue());
+
     }
 
     @Test

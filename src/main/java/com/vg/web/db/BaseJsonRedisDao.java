@@ -8,7 +8,9 @@ import static java.util.stream.Collectors.toList;
 import java.lang.reflect.Field;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -40,6 +42,7 @@ public class BaseJsonRedisDao<T> extends RedisDao {
     protected final Class<T> _class;
     protected final String _kHash;
     private final PubSubRedisChannel pubSub;
+    private Observable<String> messages;
 
     public BaseJsonRedisDao(JedisPool pool, String kPrefix, Class<T> _class) {
         this(pool, kPrefix + "_obj", kPrefix + "_mtime", kPrefix + "_channel", _class);
@@ -57,6 +60,7 @@ public class BaseJsonRedisDao<T> extends RedisDao {
         }
 
         this.pubSub = new PubSubRedisChannel(pool, kChannel);
+        this.messages = pubSub.messagesOnNewThread().share();
 
     }
 
@@ -266,47 +270,34 @@ public class BaseJsonRedisDao<T> extends RedisDao {
         tx.zrem(kMtime, id);
     }
 
-    private final Multimap<String, PubSubUpdateListener> listeners = ArrayListMultimap.create();
-    private final List<PubSubUpdateListener> allMessagesListeners = new CopyOnWriteArrayList<>();
+    private final Map<String, Subscription> listeners = new ConcurrentHashMap<>();
 
-    PubSubUpdateListener mainListener = id -> {
-        synchronized (listeners) {
-            if (listeners.containsKey(id)) {
-                listeners.get(id).forEach(x -> x.accept(id));
-            }
-            allMessagesListeners.forEach(x -> x.accept(id));
-        }
-    };
     private Field revisionField;
-    private Subscription subscription;
 
+    @Deprecated
     public void startPubSub() {
-        subscription = pubSub.messagesOnNewThread().subscribe(msg -> {
-            mainListener.accept(msg);
-        });
     }
 
+    @Deprecated
     public void stop() {
-        if (subscription != null) {
-            subscription.unsubscribe();
-        }
     }
 
     public Subscription subscribe(String videoId, PubSubUpdateListener listener) {
-        synchronized (listeners) {
-            listeners.put(videoId, listener);
-            return Subscriptions.create(() -> {
-                synchronized (listeners) {
-                    listeners.remove(videoId, listener);
-                }
-            });
-        }
+        String key = listenerKey(videoId, listener);
+        Subscription subscribe = updates().filter(id -> videoId.equals(id)).subscribe(x -> listener.accept(x));
+        Subscription old = listeners.put(key, subscribe);
+        unsubscribe(old);
+        return subscribe;
+
+    }
+
+    private static String listenerKey(String videoId, PubSubUpdateListener listener) {
+        int id = System.identityHashCode(listener);
+        return videoId == null ? "" : videoId + "/" + id;
     }
 
     public void unsubscribe(String videoId, PubSubUpdateListener listener) {
-        synchronized (listeners) {
-            listeners.remove(videoId, listener);
-        }
+        unsubscribe(listeners.remove(listenerKey(videoId, listener)));
     }
 
     public void publish(String message) {
@@ -314,12 +305,20 @@ public class BaseJsonRedisDao<T> extends RedisDao {
     }
 
     public Subscription subscribe(PubSubUpdateListener listener) {
-        allMessagesListeners.add(listener);
-        return Subscriptions.create(() -> allMessagesListeners.remove(listener));
+        Subscription subscribe = updates().subscribe(x -> listener.accept(x));
+        Subscription old = listeners.put(listenerKey(null, listener), subscribe);
+        unsubscribe(old);
+        return subscribe;
+    }
+
+    private static void unsubscribe(Subscription sub) {
+        if (sub != null && !sub.isUnsubscribed()) {
+            sub.unsubscribe();
+        }
     }
 
     public void unsubscribe(PubSubUpdateListener listener) {
-        allMessagesListeners.remove(listener);
+        unsubscribe(listeners.remove(listenerKey(null, listener)));
     }
 
     protected void updateAndPublish(String id, Consumer<Jedis> update) {
@@ -336,7 +335,7 @@ public class BaseJsonRedisDao<T> extends RedisDao {
     }
     
     public Observable<String> updates() {
-        return Observable.create(o -> o.add(subscribe(id -> o.onNext(id))));
+        return messages;
     }
 
 }
