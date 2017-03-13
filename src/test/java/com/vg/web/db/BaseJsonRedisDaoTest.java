@@ -1,5 +1,6 @@
 package com.vg.web.db;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.Assert.*;
 import static redis.clients.jedis.Protocol.DEFAULT_PORT;
 import static redis.clients.jedis.Protocol.DEFAULT_TIMEOUT;
@@ -11,6 +12,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
@@ -24,6 +27,8 @@ import com.vg.web.socket.PubSubUpdateListener;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.Transaction;
+import rx.Observable;
+import rx.subjects.ReplaySubject;
 
 public class BaseJsonRedisDaoTest {
     public static GenericObjectPoolConfig poolConfig() {
@@ -71,19 +76,35 @@ public class BaseJsonRedisDaoTest {
     @Test
     public void testSubscribe() throws Exception {
         BaseJsonRedisDao<Task> dao = new BaseJsonRedisDao<>(pool, "task", Task.class);
+        Observable<String> allEvents = dao.updates().replay().autoConnect();
+        allEvents.subscribe();
 
+        ReplaySubject<Boolean> handledEvents = ReplaySubject.create();
         List<String> fired = new CopyOnWriteArrayList<>();
-        dao.subscribe(x -> fired.add(x));
+        PubSubUpdateListener listener = x -> {
+            fired.add(x);
+            handledEvents.onNext(true);
+        };
+        dao.subscribe(listener);
         
         String t1 = dao.create(new Task());
         String t2 = dao.create(new Task());
-        Thread.sleep(100);
+        wait5sec(allEvents.take(2));
+        wait5sec(handledEvents.take(2));
         assertArrayEquals(new String[] { t1, t2 }, fired.toArray(new String[0]));
+        dao.unsubscribe(listener);
 
-        MutableInt t1fired = new MutableInt();
-        MutableInt t2fired = new MutableInt();
-        PubSubUpdateListener listener1 = x -> t1fired.increment();
-        PubSubUpdateListener listener2 = x -> t2fired.increment();
+        AtomicInteger t1fired = new AtomicInteger();
+        AtomicInteger t2fired = new AtomicInteger();
+        PubSubUpdateListener listener1 = x -> {
+            t1fired.incrementAndGet();
+            handledEvents.onNext(true);
+
+        };
+        PubSubUpdateListener listener2 = x -> {
+            t2fired.incrementAndGet();
+            handledEvents.onNext(true);
+        };
         dao.subscribe(t1, listener1);
         dao.subscribe(t2, listener2);
 
@@ -92,7 +113,9 @@ public class BaseJsonRedisDaoTest {
         
         dao.update(t1, t -> t.counter++);
         dao.update(t2, t -> t.counter++);
-        Thread.sleep(100);
+        
+        wait5sec(allEvents.take(4));
+        wait5sec(handledEvents.take(4));
 
         assertEquals(1, t1fired.intValue());
         assertEquals(1, t2fired.intValue());
@@ -101,11 +124,26 @@ public class BaseJsonRedisDaoTest {
 
         dao.update(t1, t -> t.counter++);
         dao.update(t2, t -> t.counter++);
-        Thread.sleep(100);
+        
+        wait5sec(allEvents.take(6));
+        wait5sec(handledEvents.take(5));
 
         assertEquals(1, t1fired.intValue());
         assertEquals(2, t2fired.intValue());
 
+    }
+
+    private static void sleep100() {
+        try {
+            Thread.sleep(100);
+        } catch (InterruptedException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+    }
+
+    private static <T> void wait5sec(Observable<T> take) {
+        take.toList().timeout(5, SECONDS).toBlocking().first();
     }
 
     @Test
