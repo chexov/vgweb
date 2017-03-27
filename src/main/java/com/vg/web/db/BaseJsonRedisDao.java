@@ -78,7 +78,7 @@ public class BaseJsonRedisDao<T> extends RedisDao {
         if (o != null) {
             publish(GsonFactory.gsonToString(o));
         } else {
-            System.err.println("Item does not exist but should " + itemId);
+            error("Item does not exist but should %s", itemId);
         }
     }
 
@@ -212,9 +212,20 @@ public class BaseJsonRedisDao<T> extends RedisDao {
             return false;
         });
         if (!ok) {
-            System.err.println("error updating " + id);
+            error("error updating %s", id);
         }
         return ok;
+    }
+
+    private final static boolean debug = false;
+
+    private void error(String format, Object... args) {
+        if (debug) {
+            if (!format.endsWith("\n")) {
+                format += "\n";
+            }
+            System.err.printf(format, args);
+        }
     }
 
     private long _dbRev(Jedis r, String id) {
