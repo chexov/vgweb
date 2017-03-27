@@ -99,17 +99,18 @@ public class BaseJsonRedisDao<T> extends RedisDao {
 
     protected T _get(Jedis r, String id) {
         try {
-            if (_contains(r, id)) {
-                T item = null;
-                long rev = 0;
-                do {
+            T item = null;
+            long rev = 0;
+            do {
                 rev = _dbRev(r, id);
                 String hget = r.hget(kHash(id), fJson(rev));
+                if (hget == null) {
+                    return null;
+                }
                 item = fromJson(hget, _class);
-                } while(item == null && _contains(r, id));
-                setRevision(item, rev);
-                return item;
-            }
+            } while (item == null && _contains(r, id));
+            setRevision(item, rev);
+            return item;
         } catch (Exception e) {
         }
         return null;
