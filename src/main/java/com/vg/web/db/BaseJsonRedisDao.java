@@ -78,7 +78,7 @@ public class BaseJsonRedisDao<T> extends RedisDao {
         if (o != null) {
             publish(GsonFactory.gsonToString(o));
         } else {
-            System.err.println("Item does not exist but should " + itemId);
+            error("Item does not exist but should %s", itemId);
         }
     }
 
@@ -99,17 +99,18 @@ public class BaseJsonRedisDao<T> extends RedisDao {
 
     protected T _get(Jedis r, String id) {
         try {
-            if (_contains(r, id)) {
-                T item = null;
-                long rev = 0;
-                do {
+            T item = null;
+            long rev = 0;
+            do {
                 rev = _dbRev(r, id);
                 String hget = r.hget(kHash(id), fJson(rev));
+                if (hget == null) {
+                    return null;
+                }
                 item = fromJson(hget, _class);
-                } while(item == null && _contains(r, id));
-                setRevision(item, rev);
-                return item;
-            }
+            } while (item == null && _contains(r, id));
+            setRevision(item, rev);
+            return item;
         } catch (Exception e) {
         }
         return null;
@@ -211,9 +212,20 @@ public class BaseJsonRedisDao<T> extends RedisDao {
             return false;
         });
         if (!ok) {
-            System.err.println("error updating " + id);
+            error("error updating %s", id);
         }
         return ok;
+    }
+
+    private final static boolean debug = false;
+
+    private void error(String format, Object... args) {
+        if (debug) {
+            if (!format.endsWith("\n")) {
+                format += "\n";
+            }
+            System.err.printf(format, args);
+        }
     }
 
     private long _dbRev(Jedis r, String id) {
