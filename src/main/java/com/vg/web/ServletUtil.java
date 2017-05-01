@@ -22,8 +22,10 @@ public class ServletUtil {
 	public static void ignoreClientReset(Throwable e) {
 		Throwable cause = e.getCause();
 		String message = cause != null ? defaultString(cause.getMessage()) : "";
-		boolean clientReset = "Broken pipe".equals(message) || "Connection reset by peer".equals(message);
-		if (!clientReset) {
+		boolean clientReset = "Broken pipe".equals(message) || "Connection reset by peer".equals(message) || (e instanceof org.eclipse.jetty.io.EofException);
+		if (clientReset) {
+            System.err.println("ignoreClientReset " + e);
+		} else {
 			e.printStackTrace();
 		}
 	}

@@ -45,6 +45,9 @@ public class ContentRangeFileView implements View {
             // System.out.println(resp);
             copy(is, resp.getOutputStream());
         } catch (Throwable e) {
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
             ServletUtil.ignoreClientReset(e);
         } finally {
             IOUtils.closeQuietly(is);
