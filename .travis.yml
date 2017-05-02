@@ -1,4 +1,6 @@
 language: java
+services:
+    - redis-server
 jdk:
   - oraclejdk8
 sudo: false
