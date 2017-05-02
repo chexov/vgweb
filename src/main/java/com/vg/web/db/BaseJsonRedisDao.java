@@ -104,10 +104,9 @@ public class BaseJsonRedisDao<T> extends RedisDao {
             do {
                 rev = _dbRev(r, id);
                 String hget = r.hget(kHash(id), fJson(rev));
-                if (hget == null) {
-                    return null;
+                if (hget != null) {
+                    item = fromJson(hget, _class);
                 }
-                item = fromJson(hget, _class);
             } while (item == null && _contains(r, id));
             setRevision(item, rev);
             return item;
@@ -121,7 +120,7 @@ public class BaseJsonRedisDao<T> extends RedisDao {
     }
 
     private void setRevision(T item, long rev) {
-        if (revisionField != null) {
+        if (item != null && revisionField != null) {
             try {
                 revisionField.set(item, rev);
             } catch (Exception e) {
