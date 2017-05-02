@@ -8,3 +8,4 @@ addons:
   apt:
     packages:
       - oracle-java8-installer
+      - redis-server
