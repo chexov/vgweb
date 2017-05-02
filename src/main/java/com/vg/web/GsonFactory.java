@@ -30,6 +30,12 @@ public class GsonFactory {
         T fromJson = (T) GSON_TOSTRING.fromJson(json, t.getClass());
         return fromJson;
     }
+    
+    public static <T1, T2> T2 gsonCast(T1 t, Class<T2> cls) {
+        String json = GSON_TOSTRING.toJson(t);
+        T2 fromJson = GSON_TOSTRING.fromJson(json, cls);
+        return fromJson;
+    }
 
     public static GsonBuilder builder(boolean serializeNulls) {
         GsonBuilder builder = new GsonBuilder();
