@@ -1,6 +1,4 @@
 language: java
-services:
-    - redis-server
 jdk:
   - oraclejdk8
 sudo: false
@@ -8,3 +6,4 @@ addons:
   apt:
     packages:
       - oracle-java8-installer
+      - redis-server
