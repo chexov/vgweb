@@ -69,7 +69,7 @@ public class BaseJsonRedisDao<T> extends RedisDao {
         String id = newId(item);
         withRedisTransactionOnOk(tx -> {
             create(tx, id, item);
-        }, () -> publish(id));
+        }, () -> publish(id, null, item));
         return id;
     }
 
@@ -191,7 +191,7 @@ public class BaseJsonRedisDao<T> extends RedisDao {
                 withRedisTransaction(r, tx -> {
                     _update(tx, id, null, item);
                 });
-                publish(id);
+                publish(id, null, item);
                 return true;
             }
             r.watch(kHash(id));
@@ -205,7 +205,7 @@ public class BaseJsonRedisDao<T> extends RedisDao {
                 tx.hincrBy(kHash(id), fRevision, 1);
             });
             if (result != null) {
-                publish(id);
+                publish(id, beforeItem, item);
                 return true;
             }
             return false;
@@ -285,14 +285,6 @@ public class BaseJsonRedisDao<T> extends RedisDao {
 
     private Field revisionField;
 
-    @Deprecated
-    public void startPubSub() {
-    }
-
-    @Deprecated
-    public void stop() {
-    }
-
     public Subscription subscribe(String videoId, PubSubUpdateListener listener) {
         String key = listenerKey(videoId, listener);
         Subscription subscribe = updates().filter(id -> videoId.equals(id)).subscribe(x -> listener.accept(x));
@@ -311,7 +303,11 @@ public class BaseJsonRedisDao<T> extends RedisDao {
         unsubscribe(listeners.remove(listenerKey(videoId, listener)));
     }
 
-    public void publish(String message) {
+    protected void publish(String id, T before, T now) {
+        pubSub.publish(id);
+    }
+    
+    protected void publish(String message) {
         pubSub.publish(message);
     }
 
