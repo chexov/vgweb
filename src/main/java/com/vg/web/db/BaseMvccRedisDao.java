@@ -3,7 +3,6 @@ package com.vg.web.db;
 import static java.util.UUID.randomUUID;
 import static java.util.stream.Collectors.toList;
 
-import java.lang.reflect.Field;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -47,10 +46,6 @@ public abstract class BaseMvccRedisDao<T> extends RedisDao {
         this.kMtime = kMtime;
         this.kChannel = kChannel;
         this._class = _class;
-        try {
-            this.revisionField = _class.getDeclaredField("_rev");
-        } catch (Exception e) {
-        }
 
         this.pubSub = new PubSubRedisChannel(pool, kChannel);
         this.messages = pubSub.messagesOnNewThread().share();
@@ -78,6 +73,10 @@ public abstract class BaseMvccRedisDao<T> extends RedisDao {
     protected abstract String serialize(T object);
 
     protected abstract T deserialize(String value);
+
+    protected abstract void setRevision(T item, long rev);
+    
+    protected abstract long getRevision(T item);
 
     protected void create(Transaction tx, String id, T item) {
         tx.zadd(kMtime, System.currentTimeMillis(), id);
@@ -114,29 +113,6 @@ public abstract class BaseMvccRedisDao<T> extends RedisDao {
 
     private long _nextRev(Jedis r, String id) {
         return toLong(r.hget(kHash(id), fRevision));
-    }
-
-    private void setRevision(T item, long rev) {
-        if (item != null && revisionField != null) {
-            try {
-                revisionField.set(item, rev);
-            } catch (Exception e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            }
-        }
-    }
-
-    private long getRevision(T item) {
-        if (revisionField != null) {
-            try {
-                return toLong(revisionField.get(item));
-            } catch (Exception e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            }
-        }
-        return -1;
     }
 
     private String fJson(long rev) {
@@ -228,11 +204,11 @@ public abstract class BaseMvccRedisDao<T> extends RedisDao {
         return Math.max(0, _nextRev(r, id) - 1);
     }
 
-    private static long toLong(Object object) {
+    protected static long toLong(Object object) {
         return toLong(object, 0);
     }
 
-    private static long toLong(Object object, long defaultValue) {
+    protected static long toLong(Object object, long defaultValue) {
         if (object == null) {
             return defaultValue;
         }
@@ -279,8 +255,6 @@ public abstract class BaseMvccRedisDao<T> extends RedisDao {
     }
 
     private final Map<String, Subscription> listeners = new ConcurrentHashMap<>();
-
-    private Field revisionField;
 
     public Subscription subscribe(String videoId, PubSubUpdateListener listener) {
         String key = listenerKey(videoId, listener);
