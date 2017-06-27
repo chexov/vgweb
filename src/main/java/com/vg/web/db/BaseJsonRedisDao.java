@@ -45,7 +45,7 @@ public class BaseJsonRedisDao<T> extends BaseMvccRedisDao<T> {
     }
     
     @Override
-    protected void setRevision(T item, long rev) {
+    protected T setRevision(T item, long rev) {
         if (item != null && revisionField != null) {
             try {
                 revisionField.set(item, rev);
@@ -54,6 +54,7 @@ public class BaseJsonRedisDao<T> extends BaseMvccRedisDao<T> {
                 e.printStackTrace();
             }
         }
+        return item;
     }
     
     @Override
@@ -66,9 +67,6 @@ public class BaseJsonRedisDao<T> extends BaseMvccRedisDao<T> {
                 e.printStackTrace();
             }
         }
-        return -1;
+        return UNKNOWN_REVISION;
     }
-    
-
-
 }

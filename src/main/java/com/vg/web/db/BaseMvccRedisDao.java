@@ -22,6 +22,7 @@ import rx.Subscription;
 
 public abstract class BaseMvccRedisDao<T> extends RedisDao {
 
+    public static final long UNKNOWN_REVISION = -1;
     protected static final String fRevision = "_rev";
     protected static final String fJson = "json";
 
@@ -74,7 +75,7 @@ public abstract class BaseMvccRedisDao<T> extends RedisDao {
 
     protected abstract T deserialize(String value);
 
-    protected abstract void setRevision(T item, long rev);
+    protected abstract T setRevision(T item, long rev);
     
     protected abstract long getRevision(T item);
 
@@ -104,8 +105,7 @@ public abstract class BaseMvccRedisDao<T> extends RedisDao {
                     item = deserialize(hget);
                 }
             } while (item == null && _contains(r, id));
-            setRevision(item, rev);
-            return item;
+            return setRevision(item, rev);
         } catch (Exception e) {
         }
         return null;
@@ -160,7 +160,7 @@ public abstract class BaseMvccRedisDao<T> extends RedisDao {
                 return false;
             }
             long rev = getRevision(item);
-            if (rev == -1) {
+            if (rev == UNKNOWN_REVISION) {
                 withRedisTransaction(r, tx -> {
                     _update(tx, id, null, item);
                 });
