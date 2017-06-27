@@ -1,22 +1,24 @@
 package com.vg.web.db;
 
+import static com.vg.web.db.BaseMvccRedisDaoTest.poolConfig;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static redis.clients.jedis.Protocol.DEFAULT_PORT;
 import static redis.clients.jedis.Protocol.DEFAULT_TIMEOUT;
 
-import java.awt.*;
+import java.awt.Dimension;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.commons.lang3.mutable.MutableInt;
-import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -31,16 +33,6 @@ import rx.Observable;
 import rx.subjects.ReplaySubject;
 
 public class BaseJsonRedisDaoTest {
-    public static GenericObjectPoolConfig poolConfig() {
-        GenericObjectPoolConfig pc = new GenericObjectPoolConfig();
-        pc.setMaxTotal(160);
-        pc.setTestOnBorrow(true);
-        pc.setMinIdle(1);
-        pc.setMaxIdle(5);
-        pc.setTestWhileIdle(true);
-        return pc;
-    }
-
     private JedisPool pool;
 
     @Before
