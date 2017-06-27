@@ -24,6 +24,10 @@ public class GsonFactory {
 
     private static final Gson GSON_TOSTRING = builder(false).create();
     private static final Gson GSON = builder(false).create();
+    
+    public static Gson defaultGson() {
+        return GSON;
+    }
 
     public static <T> T gsonClone(T t) {
         String json = GSON_TOSTRING.toJson(t);
