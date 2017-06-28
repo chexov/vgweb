@@ -55,11 +55,17 @@ public abstract class BaseMvccRedisDao<T> extends RedisDao {
 
     //C
     public String create(T item) {
-        String id = newId(item);
-        withRedisTransactionOnOk(tx -> {
-            create(tx, id, item);
-        }, () -> publish(id, null, item));
-        return id;
+        return create(newId(item), item);
+    }
+    
+    public String create(String id, T item) {
+        if (!contains(id)) {
+            withRedisTransactionOnOk(tx -> {
+                create(tx, id, item);
+            }, () -> publish(id, null, item));
+            return id;
+        }
+        throw new IllegalArgumentException("already exists " + id);
     }
 
     public void publishId(String itemId) {
