@@ -8,15 +8,15 @@ import redis.clients.jedis.Transaction;
 import redis.clients.jedis.Tuple;
 import rx.Observable;
 
-import static java.util.Collections.emptyList;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static rx.Observable.using;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.function.Consumer;
 import java.util.function.Function;
+
+import com.github.davidmoten.rx.RetryWhen;
 
 public abstract class RedisDao {
     protected final JedisPool pool;
@@ -52,7 +52,11 @@ public abstract class RedisDao {
     }
 
     protected Jedis getRedis() {
-        return pool.getResource();
+        return Observable.fromCallable(() -> {
+            return pool.getResource();
+        }).retryWhen(RetryWhen.exponentialBackoff(100, MILLISECONDS).maxRetries(5).action(ed -> {
+            System.err.println("getRedis retry in " + ed.durationMs() + "msec because " + ed.throwable());
+        }).build()).toBlocking().first();
     }
 
     protected List<Object> withRedisTransaction(Consumer<Transaction> r) {
